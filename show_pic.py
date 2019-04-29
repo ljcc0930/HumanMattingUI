@@ -18,7 +18,7 @@ def pixMaptoNumpy(pixmap):
     return arr
 '''
 
-def numpytoPixMap(cvImg):
+def numpytoPixmap(cvImg):
     height, width, channel = cvImg.shape
     bytesPerLine = 3 * width
     qImg = QImage(cvImg.data, width, height, bytesPerLine, QImage.Format_RGB888).rgbSwapped()
@@ -84,7 +84,7 @@ class Magic:
 
                 show = img * alpha + bg * (1 - alpha)
 
-                pixmap = numpytoPixMap(show.astype('uint8'))
+                pixmap = numpytoPixmap(show.astype('uint8'))
                 pixmap = pixmap.scaled(x, y, Qt.KeepAspectRatio)
 
                 self.objs[i].setPixmap(pixmap)
@@ -92,7 +92,7 @@ class Magic:
             for obj, path in zip(self.objs, self.paths):
                 pixmap = QPixmap(path)
                 # alpha = cv2.imread(path)
-                # pixmap = numpytoPixMap(alpha)
+                # pixmap = numpytoPixmap(alpha)
                 pixmap = pixmap.scaled(x, y, Qt.KeepAspectRatio)
 
                 obj.setPixmap(pixmap)
