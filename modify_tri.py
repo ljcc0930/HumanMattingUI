@@ -43,6 +43,10 @@ class ImageInputs:
             self.nowImg = cv2.imread(imgPath)
             self.nowTri = cv2.imread(triPath)
         return self.nowImg, self.nowTri
+    
+    def save(self, trimap):
+        imgPath, triPath = self.list[self.cnt][:2]
+        cv2.imwrite(triPath, trimap.astype('uint8'))
 
 class EditingImage(QLabel):
     def __init__(self, widget, id, text):
@@ -127,12 +131,12 @@ class MyWidget(QWidget):
             self.setSet()
 
     def save(self):
-        # TODO
-        raise Exception("Undefined!")
+        image, trimap = self.resizeToNormal()
+        self.imageList.save(trimap)
 
     def run(self):
+        image, trimap = self.resizeToNormal()
         for i, func in enumerate(self.functions):
-            image, trimap = self.resizeToNormal()
             output = func(image, trimap)
             self.setImage(i + 3, array = output, resize = True)
 
@@ -181,7 +185,7 @@ class MyWidget(QWidget):
             self.imageLayout.addLayout(rowLayout)
 
     def initToolLayout(self):
-        toolTexts = 'Foreground Background Unknown Undo Run Save Previous Next'.split(' ')
+        toolTexts = 'Unknown Foreground Background Undo Run Save Previous Next'.split(' ')
         self.toolWidgets = []
 
         for text in toolTexts:
