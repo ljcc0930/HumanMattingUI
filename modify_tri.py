@@ -39,13 +39,14 @@ class ImageInputs:
     def previous(self):
         if self.cnt > 0:
             self.cnt -= 1
+            imgPath, triPath = self.list[self.cnt][:2]
             self.nowImg = cv2.imread(imgPath)
             self.nowTri = cv2.imread(triPath)
         return self.nowImg, self.nowTri
 
 class EditingImage(QLabel):
-    def __init__(self, widget, id, *args, **kwargs):
-        super(EditingImage, self).__init__(*args, **kwargs)
+    def __init__(self, widget, id, text):
+        super(EditingImage, self).__init__(text)
         self.widget = widget
         self.id = id
 
@@ -58,12 +59,26 @@ class EditingImage(QLabel):
     def mouseReleaseEvent(self, QMouseEvent):
         pass
     
-'''
-class MyButton(QButton):
-    def __init__(self, widget, id, *args, **kwargs):
-        super(MyButton, self).__init__(*args, **kwargs)
+class MyButton(QPushButton):
+    def __init__(self, widget, text):
+        super(MyButton, self).__init__(text)
+        self.text = text
         self.widget = widget
-'''
+        self.buttons = {
+            'Foreground':   lambda : self.widget.setColor((255, 255, 255)),
+            'Background':   lambda : self.widget.setColor((0, 0, 0)),
+            'Unknown':      lambda : self.widget.setColor((128, 128, 128)),
+            'Undo':         self.widget.undo,
+            'Run':          self.widget.run,
+            'Save':         self.widget.save,
+            'Previous':     lambda : self.widget.newSet(True),
+            'Next':         self.widget.newSet
+        }
+
+    def mouseReleaseEvent(self, QMouseEvent):
+        super(MyButton, self).mouseReleaseEvent(QMouseEvent)
+        print(self.text)
+        self.buttons[self.text]()
 
 
 class MyWidget(QWidget):
@@ -80,19 +95,32 @@ class MyWidget(QWidget):
         show = self.image * 0.7 + self.trimap * 0.3
         self.setImage(2, array = show)
 
-    def newSet(self):
-        self.image, self.trimap = self.imageList()
+    def newSet(self, prev = False):
+        if prev:
+            self.image, self.trimap = self.imageList.previous()
+        else:
+            self.image, self.trimap = self.imageList()
+
         if len(self.trimap.shape) == 2:
             self.trimap = np.stack([self.trimap] * 3, axis = 2)
         assert self.image.shape == self.trimap.shape
 
         h, w = self.image.shape[:2]
         imgw, imgh = self.scale
-        f = min(imgw / w, imgh / h)
+        self.f = min(imgw / w, imgh / h)
 
-        self.image = cv2.resize(self.image, None, fx = f, fy = f)
-        self.trimap = cv2.resize(self.trimap, None, fx = f, fy = f)
+        self.image = cv2.resize(self.image, None, fx = self.f, fy = self.f)
+        self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
         self.setSet()
+
+    def undo(self):
+        raise Exception("Undefined!")
+
+    def save(self):
+        raise Exception("Undefined!")
+
+    def run(self):
+        raise Exception("Undefined!")
 
     def click(self, pos):
         x, y = pos.x(), pos.y()
@@ -128,26 +156,28 @@ class MyWidget(QWidget):
             self.imageLayout.addLayout(rowLayout)
 
     def initToolLayout(self):
-        toolTexts = 'Foreground Background Unknown Run Previous Next Save'.split(' ')
+        toolTexts = 'Foreground Background Unknown Undo Run Save Previous Next'.split(' ')
         self.toolWidgets = []
 
         for text in toolTexts:
-            temp = QPushButton(text)
-            # TODO: add button connection
-            # temp.clicked.connect()
+            temp = MyButton(self, text)
             self.toolWidgets.append(temp)
-
 
         self.toolLayout = QVBoxLayout()
         for tool in self.toolWidgets:
             self.toolLayout.addWidget(tool)
 
-    def __init__(self, imageList):
+    def setColor(self, color):
+        self.color = color
+
+    def __init__(self, imageList, functions):
         QWidget.__init__(self)
+
+        self.functions = functions
 
         self.imageList = imageList
         self.scale = (500, 400)
-        self.n = 6
+        self.n = 3 + len(functions)
         self.row = 2
         self.col = (self.n + self.row - 1) // self.row
 
@@ -166,14 +196,17 @@ class MyWidget(QWidget):
         self.setLayout(self.mainLayout)
 
 
-
-if __name__ == "__main__":
-    inp = ImageInputs('list.txt')
+def main(inputList, *args):
+    inp = ImageInputs(inputList)
     app = QApplication(sys.argv)
 
-    widget = MyWidget(imageList = inp)
+    widget = MyWidget(imageList = inp, functions = args)
     # widget.resize(800, 600)
     widget.show()
 
     t = app.exec_()
     sys.exit(t)
+
+
+if __name__ == "__main__":
+    main('list.txt')
