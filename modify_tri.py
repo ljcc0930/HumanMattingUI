@@ -57,7 +57,7 @@ class EditingImage(QLabel):
         self.widget.drag(QMouseEvent.pos())
 
     def mouseReleaseEvent(self, QMouseEvent):
-        pass
+        self.widget.release()
     
 class MyButton(QPushButton):
     def __init__(self, widget, text):
@@ -82,11 +82,12 @@ class MyButton(QPushButton):
 
 
 class MyWidget(QWidget):
-    def setImage(self, x, pixmap = None, array = None):
+    def setImage(self, x, pixmap = None, array = None, resize = False):
         if pixmap is None:
             pixmap = numpytoPixmap(array)
         imgx, imgy = self.scale
-        # pixmap = pixmap.scaled(imgx, imgy, Qt.KeepAspectRatio)
+        if resize:
+            pixmap = pixmap.scaled(imgx, imgy, Qt.KeepAspectRatio)
         self.texts[x].setPixmap(pixmap)
 
     def setSet(self):
@@ -111,18 +112,33 @@ class MyWidget(QWidget):
 
         self.image = cv2.resize(self.image, None, fx = self.f, fy = self.f)
         self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
+        self.history = []
         self.setSet()
 
+    def resizeToNormal(self):
+        f = 1 / self.f
+        image = cv2.resize(self.image, None, fx = f, fy = f)
+        trimap = cv2.resize(self.trimap, None, fx = f, fy = f)
+        return image, trimap
+
     def undo(self):
-        raise Exception("Undefined!")
+        if len(self.history) > 0:
+            self.trimap = self.history.pop()
+            self.setSet()
 
     def save(self):
+        # TODO
         raise Exception("Undefined!")
 
     def run(self):
-        raise Exception("Undefined!")
+        for i, func in enumerate(self.functions):
+            image, trimap = self.resizeToNormal()
+            output = func(image, trimap)
+            self.setImage(i + 3, array = output, resize = True)
+
 
     def click(self, pos):
+        self.history.append(self.trimap.copy())
         x, y = pos.x(), pos.y()
         self.mousePosition = x, y
         cv2.line(self.trimap, (x, y), (x, y), self.color, 
@@ -136,16 +152,25 @@ class MyWidget(QWidget):
         self.mousePosition = x, y
         self.setSet()
 
+    def release(self):
+        pass
+
     def initImageLayout(self):
         n, row, col = self.n, self.row, self.col
         imgx, imgy = self.scale
         self.texts = []
-        for i in range(n):
-            # text = QLabel("None")
+        for i in range(3):
             text = EditingImage(self, i, "None")
             text.setAlignment(Qt.AlignTop)
             text.setFixedSize(QSize(imgx, imgy))
             self.texts.append(text)
+
+        for i in self.functions:
+            text = QLabel("")
+            text.setAlignment(Qt.AlignTop)
+            text.setFixedSize(QSize(imgx, imgy))
+            self.texts.append(text)
+
         self.newSet()
 
         self.imageLayout = QVBoxLayout()
@@ -174,6 +199,7 @@ class MyWidget(QWidget):
         QWidget.__init__(self)
 
         self.functions = functions
+        self.history = []
 
         self.imageList = imageList
         self.scale = (500, 400)
@@ -209,4 +235,5 @@ def main(inputList, *args):
 
 
 if __name__ == "__main__":
-    main('list.txt')
+    a = lambda x, y : y
+    main('list.txt', a)
