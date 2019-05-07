@@ -11,23 +11,25 @@ from PySide2.QtGui import QPixmap, QImage, QCursor
 
 from utils import numpytoPixmap, ImageInputs
 from tools import painterTools
-from config import painterColors, toolButtons, toolTexts
+from config import painterColors, toolTexts, toolKeys, colorKeys, buttonKeys
+
+from algorithm import calcGradient
 
 
-class EditingImage(QLabel):
+class ClickLabel(QLabel):
     def __init__(self, widget, id, text):
-        super(EditingImage, self).__init__(text)
+        super(ClickLabel, self).__init__(text)
         self.widget = widget
         self.id = id
 
     def mousePressEvent(self, QMouseEvent):
-        self.widget.click(QMouseEvent.pos())
+        self.widget.click(QMouseEvent.pos(), self.id)
 
     def mouseMoveEvent(self, QMouseEvent):
-        self.widget.drag(QMouseEvent.pos())
+        self.widget.drag(QMouseEvent.pos(), self.id)
 
     def mouseReleaseEvent(self, QMouseEvent):
-        self.widget.release(QMouseEvent.pos())
+        self.widget.release(QMouseEvent.pos(), self.id)
     
 class MyButton(QPushButton):
     def __init__(self, widget, text):
@@ -51,7 +53,6 @@ class MyButton(QPushButton):
 
     def mouseReleaseEvent(self, QMouseEvent):
         super(MyButton, self).mouseReleaseEvent(QMouseEvent)
-        print(self.text)
         self.button()
 
 
@@ -88,6 +89,10 @@ class MyWidget(QWidget):
         self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
         self.history = []
         self.setSet()
+        self.getGradient()
+
+    def getGradient(self):
+        self.grad = calcGradient(self.image)
 
     def resizeToNormal(self):
         f = 1 / self.f
@@ -110,14 +115,23 @@ class MyWidget(QWidget):
             output = func(image, trimap)
             self.setImage(i + 3, array = output, resize = True)
 
-    def click(self, pos):
-        self.tool.click(pos)
+    def click(self, pos, id):
+        if id < 3:
+            self.tool.click(pos)
+        else:
+            print(id, pos.x(), pos.y())
 
-    def drag(self, pos):
-        self.tool.drag(pos)
+    def drag(self, pos, id):
+        if id < 3:
+            self.tool.drag(pos)
+        else:
+            print(id, pos.x(), pos.y())
 
-    def release(self, pos):
-        self.tool.release(pos)
+    def release(self, pos, id):
+        if id < 3:
+            self.tool.release(pos)
+        else:
+            print(id, pos.x(), pos.y())
 
     def setColor(self, color):
         color = painterColors[color]
@@ -136,13 +150,13 @@ class MyWidget(QWidget):
         imgx, imgy = self.scale
         self.texts = []
         for i in range(3):
-            text = EditingImage(self, i, "None")
+            text = ClickLabel(self, i, "None")
             text.setAlignment(Qt.AlignTop)
             text.setFixedSize(QSize(imgx, imgy))
             self.texts.append(text)
 
-        for i in self.functions:
-            text = QLabel("")
+        for i, f in enumerate(self.functions):
+            text = ClickLabel(self, i + 3, "")
             text.setAlignment(Qt.AlignTop)
             text.setFixedSize(QSize(imgx, imgy))
             self.texts.append(text)
@@ -208,4 +222,4 @@ def main(inputList, *args):
 
 if __name__ == "__main__":
     a = lambda x, y : y
-    main('list.txt', a)
+    main('../list.txt', a)

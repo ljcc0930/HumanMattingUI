@@ -1,4 +1,7 @@
 import cv2
+import numpy as np
+
+from algorithm import floodFill
 
 class BaseTool:
     color = (128, 128, 128)
@@ -63,11 +66,18 @@ class Pen(BaseTool):
 
 class Filler(BaseTool):
     toolName = 'Filler'
+    theta = 7
     def __init__(self):
         super(Filler).__init__();
 
-    #TODO
+    def setTheta(self, theta):
+        Filler.theta = theta
+
     def afterRelease(self, pos):
-        raise Exception("Unimplement!!")
+        position = pos.y(), pos.x()
+        vis = floodFill(self.widget.grad, self.theta, position)
+        vis = np.stack([vis] * 3, axis = 2)
+        self.widget.trimap =(self.widget.trimap - self.color) * vis + self.color
+        self.flush()
 
 painterTools = {'Filler': Filler(), 'Pen': Pen()}
