@@ -2,3 +2,4 @@
 *.jpg
 *.png
 *.bmp
+__pycache__/*

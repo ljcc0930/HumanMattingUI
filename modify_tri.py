@@ -9,44 +9,10 @@ from PySide2.QtWidgets import (QApplication, QLabel, QPushButton,
 from PySide2.QtCore import Slot, Qt, QSize
 from PySide2.QtGui import QPixmap, QImage, QCursor
 
-def numpytoPixmap(cvImg):
-    cvImg = cvImg.astype('uint8')
-    height, width, channel = cvImg.shape
-    bytesPerLine = 3 * width
-    qImg = QImage(cvImg.data, width, height, bytesPerLine, QImage.Format_RGB888).rgbSwapped()
-    return QPixmap(qImg)
+from utils import numpytoPixmap, ImageInputs
+from tools import painterTools
+from config import painterColors, toolButtons, toolTexts
 
-class ImageInputs:
-    def __init__(self, path):
-        fin = open(path, 'r')
-        self.list = []
-        for line in fin:
-            s = line[:-1].split(' ')
-            self.list.append(s)
-
-        self.len = len(self.list)
-        self.cnt = -1
-    
-    def __call__(self):
-        self.cnt += 1
-        if self.cnt >= self.len:
-            return None
-        imgPath, triPath = self.list[self.cnt][:2]
-        self.nowImg = cv2.imread(imgPath)
-        self.nowTri = cv2.imread(triPath)
-        return self.nowImg, self.nowTri
-
-    def previous(self):
-        if self.cnt > 0:
-            self.cnt -= 1
-            imgPath, triPath = self.list[self.cnt][:2]
-            self.nowImg = cv2.imread(imgPath)
-            self.nowTri = cv2.imread(triPath)
-        return self.nowImg, self.nowTri
-    
-    def save(self, trimap):
-        imgPath, triPath = self.list[self.cnt][:2]
-        cv2.imwrite(triPath, trimap.astype('uint8'))
 
 class EditingImage(QLabel):
     def __init__(self, widget, id, text):
@@ -61,7 +27,7 @@ class EditingImage(QLabel):
         self.widget.drag(QMouseEvent.pos())
 
     def mouseReleaseEvent(self, QMouseEvent):
-        self.widget.release()
+        self.widget.release(QMouseEvent.pos())
     
 class MyButton(QPushButton):
     def __init__(self, widget, text):
@@ -69,20 +35,24 @@ class MyButton(QPushButton):
         self.text = text
         self.widget = widget
         self.buttons = {
-            'Foreground':   lambda : self.widget.setColor((255, 255, 255)),
-            'Background':   lambda : self.widget.setColor((0, 0, 0)),
-            'Unknown':      lambda : self.widget.setColor((128, 128, 128)),
             'Undo':         self.widget.undo,
             'Run':          self.widget.run,
             'Save':         self.widget.save,
             'Previous':     lambda : self.widget.newSet(True),
             'Next':         self.widget.newSet
         }
+        if self.text in painterColors:
+            self.button = lambda : self.widget.setColor(self.text)
+        elif self.text in painterTools:
+            self.button = lambda : self.widget.setTool(self.text)
+        else:
+            assert self.text in self.buttons, self.text + " not implement!"
+            self.button = self.buttons[self.text]
 
     def mouseReleaseEvent(self, QMouseEvent):
         super(MyButton, self).mouseReleaseEvent(QMouseEvent)
         print(self.text)
-        self.buttons[self.text]()
+        self.button()
 
 
 class MyWidget(QWidget):
@@ -140,24 +110,26 @@ class MyWidget(QWidget):
             output = func(image, trimap)
             self.setImage(i + 3, array = output, resize = True)
 
-
     def click(self, pos):
-        self.history.append(self.trimap.copy())
-        x, y = pos.x(), pos.y()
-        self.mousePosition = x, y
-        cv2.line(self.trimap, (x, y), (x, y), self.color, 
-                 thickness = self.thickness)
-        self.setSet()
+        self.tool.click(pos)
 
     def drag(self, pos):
-        x, y = pos.x(), pos.y()
-        cv2.line(self.trimap, self.mousePosition, (x, y), self.color, 
-                 thickness = self.thickness)
-        self.mousePosition = x, y
-        self.setSet()
+        self.tool.drag(pos)
 
-    def release(self):
-        pass
+    def release(self, pos):
+        self.tool.release(pos)
+
+    def setColor(self, color):
+        color = painterColors[color]
+        self.tool.setColor(color)
+
+    def setHistory(self):
+        self.history.append(self.trimap.copy())
+
+    def setTool(self, toolName):
+        assert toolName in painterTools, toolName + " not implement!!"
+        self.tool = painterTools[toolName]
+        assert self.tool.toolName == toolName, toolName + " mapping wrong object"
 
     def initImageLayout(self):
         n, row, col = self.n, self.row, self.col
@@ -185,7 +157,6 @@ class MyWidget(QWidget):
             self.imageLayout.addLayout(rowLayout)
 
     def initToolLayout(self):
-        toolTexts = 'Unknown Foreground Background Undo Run Save Previous Next'.split(' ')
         self.toolWidgets = []
 
         for text in toolTexts:
@@ -195,9 +166,6 @@ class MyWidget(QWidget):
         self.toolLayout = QVBoxLayout()
         for tool in self.toolWidgets:
             self.toolLayout.addWidget(tool)
-
-    def setColor(self, color):
-        self.color = color
 
     def __init__(self, imageList, functions):
         QWidget.__init__(self)
@@ -211,9 +179,9 @@ class MyWidget(QWidget):
         self.row = 2
         self.col = (self.n + self.row - 1) // self.row
 
-        self.color = (128, 128, 128)
+        self.tool = painterTools['Pen']
+        self.tool.setWidget(self)
         self.thickness = 5
-        self.mousePosition = None
 
         self.initImageLayout()
         self.initToolLayout()
