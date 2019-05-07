@@ -10,7 +10,7 @@ from PySide2.QtCore import Slot, Qt, QSize
 from PySide2.QtGui import QPixmap, QImage, QCursor
 
 from utils import numpytoPixmap, ImageInputs
-from tools import painterTools
+from tools import painterTools, Concater
 from config import painterColors, toolTexts, toolKeys, colorKeys, buttonKeys
 
 from algorithm import calcGradient
@@ -57,8 +57,22 @@ class MyButton(QPushButton):
 
 
 class MyWidget(QWidget):
-    def setImage(self, x, pixmap = None, array = None, resize = False):
+    def setImage(self, x, pixmap = None, array = None, resize = False, grid = False):
+        assert pixmap is None or not grid, "Pixmap cannot draw grid."
+
+        array = array.astype('uint8')
         if pixmap is None:
+            if grid:
+                k = self.splitK
+                n, m = array.shape[:2]
+                dx = (n - 1) // k + 1
+                dy = (m - 1) // k + 1
+
+                array[dx::dx] = np.array((255, 0, 0))
+                array[:, dy::dy] = np.array((255, 0, 0))
+                array = cv2.resize(array, None, fx = self.f, fy = self.f)
+                resize = False
+
             pixmap = numpytoPixmap(array)
         imgx, imgy = self.scale
         if resize:
@@ -70,6 +84,11 @@ class MyWidget(QWidget):
         self.setImage(1, array = self.trimap)
         show = self.image * 0.7 + self.trimap * 0.3
         self.setImage(2, array = show)
+
+    def setResult(self):
+        for i, output in enumerate(self.outputs):
+            self.setImage(i + 3, array = output, resize = True, grid = True)
+        self.setImage(-1, array = self.final, resize = True)
 
     def newSet(self, prev = False):
         if prev:
@@ -111,27 +130,35 @@ class MyWidget(QWidget):
 
     def run(self):
         image, trimap = self.resizeToNormal()
+        self.outputs = []
         for i, func in enumerate(self.functions):
             output = func(image, trimap)
-            self.setImage(i + 3, array = output, resize = True)
+            if output.ndim == 2:
+                output = np.stack([output] * 3, axis = 3)
+            self.outputs.append(output)
+        self.final = np.zeros(image.shape)
+        self.setResult()
+
+    def getToolObject(self, id):
+        if id in [0, 1, 2]:
+            return self.tool
+        if id > 2 and id < self.n or id == -1:
+            return self.resultTool.setId(id)
 
     def click(self, pos, id):
-        if id < 3:
-            self.tool.click(pos)
-        else:
-            print(id, pos.x(), pos.y())
+        tool = self.getToolObject(id)
+        if tool is not None:
+            tool.click(pos)
 
     def drag(self, pos, id):
-        if id < 3:
-            self.tool.drag(pos)
-        else:
-            print(id, pos.x(), pos.y())
+        tool = self.getToolObject(id)
+        if tool is not None:
+            tool.drag(pos)
 
     def release(self, pos, id):
-        if id < 3:
-            self.tool.release(pos)
-        else:
-            print(id, pos.x(), pos.y())
+        tool = self.getToolObject(id)
+        if tool is not None:
+            tool.release(pos)
 
     def setColor(self, color):
         color = painterColors[color]
@@ -161,6 +188,11 @@ class MyWidget(QWidget):
             text.setFixedSize(QSize(imgx, imgy))
             self.texts.append(text)
 
+        text = ClickLabel(self, -1, "")
+        text.setAlignment(Qt.AlignTop)
+        text.setFixedSize(QSize(imgx, imgy))
+        self.texts.append(text)
+
         self.newSet()
 
         self.imageLayout = QVBoxLayout()
@@ -188,14 +220,16 @@ class MyWidget(QWidget):
         self.history = []
 
         self.imageList = imageList
-        self.scale = (500, 400)
-        self.n = 3 + len(functions)
-        self.row = 2
+        self.scale = (400, 300)
+        self.n = 4 + len(functions)
+        self.row = 3
         self.col = (self.n + self.row - 1) // self.row
 
         self.tool = painterTools['Pen']
         self.tool.setWidget(self)
-        self.thickness = 5
+        self.resultTool = Concater()
+        self.resultTool.setK(8)
+        self.splitK = 8
 
         self.initImageLayout()
         self.initToolLayout()
@@ -222,4 +256,6 @@ def main(inputList, *args):
 
 if __name__ == "__main__":
     a = lambda x, y : y
-    main('../list.txt', a)
+    b = lambda x, y : y / 2
+    c = lambda x, y : np.array([[[100, 205, 235]] * y.shape[1]] * y.shape[0])
+    main('../list.txt', a, b, c)
