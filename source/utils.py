@@ -25,7 +25,6 @@ class ImageInputs:
         if self.cnt >= self.len:
             return None
         imgPath, triPath = self.list[self.cnt][:2]
-        print(imgPath, triPath)
         self.nowImg = cv2.imread(imgPath)
         self.nowTri = cv2.imread(triPath)
         return self.nowImg, self.nowTri
