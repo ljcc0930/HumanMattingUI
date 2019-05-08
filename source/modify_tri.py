@@ -49,7 +49,13 @@ class MyButton(QPushButton):
             'Previous':     lambda : self.widget.newSet(True),
             'Next':         self.widget.newSet,
             'FillUnknown':  self.widget.fillUnknown,
+            'UnknownUp':    self.widget.unknownUp,
+            'UnknownDown':  self.widget.unknownDown,
             'Squeeze':      self.widget.squeeze,
+            'SplitUp':      self.widget.splitUp,
+            'SplitDown':    self.widget.splitDown,
+            'ShowGrid':     self.widget.showGrid,
+            'UndoAlpha':    self.widget.undoAlpha,
         }
         if self.text in config.painterColors:
             self.button = lambda : self.widget.setColor(self.text)
@@ -63,6 +69,7 @@ class MyButton(QPushButton):
         super(MyButton, self).mouseReleaseEvent(QMouseEvent)
         self.button()
         self.widget.setSet()
+        self.widget.setResult()
 
 
 class MyWidget(QWidget):
@@ -72,13 +79,11 @@ class MyWidget(QWidget):
         array = array.astype('uint8')
         if pixmap is None:
             if grid:
-                k = self.splitK
-                n, m = array.shape[:2]
-                dx = (n - 1) // k + 1
-                dy = (m - 1) // k + 1
+                for i in self.splitArrX[:-1]:
+                    array[i] = np.array((255, 0, 0))
+                for i in self.splitArrY[:-1]:
+                    array[:, i] = np.array((255, 0, 0))
 
-                array[dx::dx] = np.array((255, 0, 0))
-                array[:, dy::dy] = np.array((255, 0, 0))
                 array = cv2.resize(array, None, fx = self.f, fy = self.f)
                 resize = False
 
@@ -88,17 +93,19 @@ class MyWidget(QWidget):
             pixmap = pixmap.scaled(imgx, imgy, Qt.KeepAspectRatio)
         self.texts[x].setPixmap(pixmap)
 
+    def setFinal(self):
+        self.setImage(-1, array = self.final, resize = True, grid = self.gridFlag)
+
     def setSet(self):
         self.setImage(0, array = self.image)
         self.setImage(1, array = self.trimap)
         show = self.image * 0.7 + self.trimap * 0.3
         self.setImage(2, array = show)
-        self.setImage(-1, array = self.final, resize = True)
+        self.setFinal()
 
     def setResult(self):
         for i, output in enumerate(self.outputs):
-            self.setImage(i + 3, array = output, resize = True, grid = True)
-        self.setImage(-1, array = self.final, resize = True)
+            self.setImage(i + 3, array = output, resize = True, grid = self.gridFlag)
 
     def newSet(self, prev = False):
         if prev:
@@ -114,9 +121,19 @@ class MyWidget(QWidget):
         imgw, imgh = self.scale
         self.f = min(imgw / w, imgh / h)
 
+        self.splitArrX = [self.image.shape[0]]
+        self.splitArrY = [self.image.shape[1]]
+        self.resultTool.setArr(self.splitArrX, self.splitArrY)
+        for i in range(config.defaultSplit):
+            self.splitUp()
+
         self.image = cv2.resize(self.image, None, fx = self.f, fy = self.f)
         self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
+
         self.history = []
+        self.alphaHistory = []
+        self.outputs = []
+
         self.setSet()
         self.getGradient()
 
@@ -129,8 +146,50 @@ class MyWidget(QWidget):
         trimap = cv2.resize(self.trimap, None, fx = f, fy = f)
         return image, trimap
 
-    def fillUnknown(self):
-        self.setHistory()
+    def splitUp(self):
+        def splitArr(arr):
+            las = 0
+            new = []
+            for i in arr:
+                new.append((las + i) // 2)
+                new.append(i)
+                las = i
+            return new
+
+        if len(self.splitArrX) < 128:
+            self.splitArrX = splitArr(self.splitArrX)
+            self.splitArrY = splitArr(self.splitArrY)
+            self.resultTool.setArr(self.splitArrX, self.splitArrY)
+
+
+    def splitDown(self):
+        if len(self.splitArrX) > 2:
+            self.splitArrX = self.splitArrX[1::2]
+            self.splitArrY = self.splitArrY[1::2]
+            self.resultTool.setArr(self.splitArrX, self.splitArrY)
+
+    def showGrid(self):
+        self.gridFlag = not self.gridFlag
+
+    def unknownUp(self):
+        if self.lastCommand != "FillUnknown":
+            return
+        self.undo()
+        self.fillWidth += 1
+        self.fillUnknown(True)
+
+    def unknownDown(self):
+        if self.lastCommand != "FillUnknown":
+            return
+        self.undo()
+        if self.fillWidth > 0:
+            self.fillWidth -= 1
+        self.fillUnknown(True)
+
+    def fillUnknown(self, refill = False):
+        self.setHistory("FillUnknown")
+        if not refill:
+            self.fillWidth = 1
         self.trimap = algorithm.fillUnknown(self.trimap, width = self.fillWidth)
 
     def squeeze(self):
@@ -138,8 +197,14 @@ class MyWidget(QWidget):
         self.trimap = algorithm.squeeze(self.trimap)
 
     def undo(self):
+        self.lastCommand = None
         if len(self.history) > 0:
             self.trimap = self.history.pop()
+            self.setSet()
+
+    def undoAlpha(self):
+        if len(self.alphaHistory) > 0:
+            self.final = self.alphaHistory.pop()
             self.setSet()
 
     def save(self):
@@ -184,8 +249,12 @@ class MyWidget(QWidget):
         color = config.painterColors[color]
         self.tool.setColor(color)
 
-    def setHistory(self):
+    def setHistory(self, command = None):
+        self.lastCommand = command
         self.history.append(self.trimap.copy())
+
+    def setAlphaHistory(self):
+        self.alphaHistory.append(self.final.copy())
 
     def setTool(self, toolName):
         assert toolName in painterTools, toolName + " not implement!!"
@@ -230,10 +299,16 @@ class MyWidget(QWidget):
 
         for line in config.toolTexts:
             tempLine = []
-            for command in line:
-                temp = MyButton(self, config.getText(command), command)
-                temp.setFixedSize(QSize(bx, by))
-                tempLine.append(temp)
+            for tool in line:
+                tempTool = []
+                if not isinstance(tool, list):
+                    tool = [tool]
+                n = len(tool)
+                for command in tool:
+                    temp = MyButton(self, config.getText(command), command)
+                    temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
+                    tempTool.append(temp)
+                tempLine.append(tempTool)
             self.toolWidgets.append(tempLine)
 
         self.toolLayout = QVBoxLayout()
@@ -246,7 +321,10 @@ class MyWidget(QWidget):
                 lineLayout.setAlignment(Qt.AlignLeft)
 
                 for tool in line[row * bC: (row + 1) * bC]:
-                    lineLayout.addWidget(tool)
+                    singleToolLayout = QVBoxLayout()
+                    for obj in tool:
+                        singleToolLayout.addWidget(obj)
+                    lineLayout.addLayout(singleToolLayout)
                 self.toolLayout.addLayout(lineLayout)
                 addBlankToLayout(self.toolLayout, blankSize[0])
 
@@ -268,16 +346,15 @@ class MyWidget(QWidget):
         self.buttonCol = config.buttonCol
         self.blankSize = config.blankSize
 
-        self.fillWidth = 2
+        self.fillWidth = 1
 
         self.tool = painterTools['Pen']
         self.tool.setWidget(self)
         self.resultTool = Concater()
-        self.resultTool.setK(8)
-        self.splitK = 8
+        self.gridFlag = True
 
 
-        self.output = []
+        self.outputs = []
         self.final = None
 
         self.initImageLayout()

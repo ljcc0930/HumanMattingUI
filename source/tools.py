@@ -93,12 +93,27 @@ class Filler(PainterTool):
 
 painterTools = {'Filler': Filler(), 'Pen': Pen()}
 
-class Concater(BaseTool):
+class AlphaTool(BaseTool):
+    toolName = 'Alpha'
+
+    def click(self, pos):
+        self.checkWidget()
+        self.widget.setAlphaHistory()
+        self.afterClick(pos)
+
+    def flush(self):
+        self.checkWidget()
+        self.widget.setFinal()
+
+class Concater(AlphaTool):
     def setId(self, id):
         self.id = id
 
         if id > 0:
-            self.clicked = self.widget.outputs[id - 3]
+            if id - 3 < len(self.widget.outputs):
+                self.clicked = self.widget.outputs[id - 3]
+            else:
+                self.clicked = None
         else:
             self.clicked = np.zeros(self.widget.final.shape)
 
@@ -106,38 +121,37 @@ class Concater(BaseTool):
         
         return self
 
-    def setK(self, k):
-        self.k = k
+    def setArr(self, arrX, arrY):
+        self.arrX = np.array(arrX + [0])
+        self.arrY = np.array(arrY + [0])
         self.vis = {}
 
     def afterClick(self, pos):
-        k = self.k
+        arrX = self.arrX
+        arrY = self.arrY
         f = self.widget.f
         clicked = self.clicked
+        if clicked is None:
+            return 
         final = self.widget.final
         n, m = final.shape[:2]
-
-        dx = (n - 1) // k + 1
-        dy = (m - 1) // k + 1
 
         cx, cy = int(pos.y() / f), int(pos.x() / f)
 
         if cx < 0 or cy < 0 or cx >= n or cy >= m:
             return 
 
-        p, q = cx // dx, cy // dy
+        p = (arrX <= cx).sum() - 1
+        q = (arrY <= cy).sum() - 1
 
         if((p, q) in self.vis):
             return 
 
         self.vis[(p, q)] = None
-        final[p * dx: (p + 1) * dx, q * dy: (q + 1) * dy] = \
-            clicked[p * dx: (p + 1) * dx, q * dy: (q + 1) * dy]
+        final[arrX[p - 1]: arrX[p], arrY[q - 1]: arrY[q]] = \
+            clicked[arrX[p - 1]: arrX[p], arrY[q - 1]: arrY[q]]
 
         self.flush()
 
     afterDrag = afterClick
     afterRelease = afterClick
-
-    def flush(self):
-        self.widget.setImage(-1, array = self.widget.final, resize = True)
