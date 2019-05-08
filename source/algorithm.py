@@ -109,7 +109,7 @@ def fillUnknown(img, width, in_flag = True):
     F = np.logical_and(F, np.logical_not(U))
 
     img = (F * (255 - 128) + 128 - B * 128).astype('uint8')
-    return img
+    return np.stack([img] * 3, axis = 2)
 
 if __name__ == "__main__":
     inputPaths = [

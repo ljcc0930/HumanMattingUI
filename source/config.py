@@ -5,7 +5,7 @@ from tools import painterTools
 painterColors = {'Foreground':  (255, 255, 255), 
                  'Background':  (0, 0, 0), 
                  'Unknown':     (128, 128, 128)}
-buttonString = 'FillUnknown Undo Save/Run SaveAlpha/Previous Next'
+buttonString = 'Squeeze FillUnknown Undo Save/Run SaveAlpha/Previous Next'
 buttonKeys = [s.split(' ') for s in buttonString.split('/')]
 commandText = {
     'SaveAlpha': 'Save Alpha',

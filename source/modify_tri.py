@@ -49,6 +49,7 @@ class MyButton(QPushButton):
             'Previous':     lambda : self.widget.newSet(True),
             'Next':         self.widget.newSet,
             'FillUnknown':  self.widget.fillUnknown,
+            'Squeeze':      self.widget.squeeze,
         }
         if self.text in config.painterColors:
             self.button = lambda : self.widget.setColor(self.text)
@@ -61,6 +62,7 @@ class MyButton(QPushButton):
     def mouseReleaseEvent(self, QMouseEvent):
         super(MyButton, self).mouseReleaseEvent(QMouseEvent)
         self.button()
+        self.widget.setSet()
 
 
 class MyWidget(QWidget):
@@ -128,7 +130,12 @@ class MyWidget(QWidget):
         return image, trimap
 
     def fillUnknown(self):
-        algorithm.fillUnknown(self.trimap, width = self.fillWidth)
+        self.setHistory()
+        self.trimap = algorithm.fillUnknown(self.trimap, width = self.fillWidth)
+
+    def squeeze(self):
+        self.setHistory()
+        self.trimap = algorithm.squeeze(self.trimap)
 
     def undo(self):
         if len(self.history) > 0:
