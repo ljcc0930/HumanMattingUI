@@ -15,6 +15,8 @@ from config import painterColors, toolTexts, toolKeys, colorKeys, buttonKeys
 
 from algorithm import calcGradient
 
+from matting.deep_matting import load_model, deep_matting
+from matting.closed_form_matting import closed_form_matting_with_trimap
 
 class ClickLabel(QLabel):
     def __init__(self, widget, id, text):
@@ -134,7 +136,7 @@ class MyWidget(QWidget):
         for i, func in enumerate(self.functions):
             output = func(image, trimap)
             if output.ndim == 2:
-                output = np.stack([output] * 3, axis = 3)
+                output = np.stack([output] * 3, axis = 2)
             self.outputs.append(output)
         self.final = np.zeros(image.shape)
         self.setResult()
@@ -255,7 +257,12 @@ def main(inputList, *args):
 
 
 if __name__ == "__main__":
-    a = lambda x, y : y
-    b = lambda x, y : y / 2
-    c = lambda x, y : np.array([[[100, 205, 235]] * y.shape[1]] * y.shape[0])
+    # model1 = load_model('/home/wuxian/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
+    # model2 = load_model('/home/wuxian/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+    model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
+    model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+
+    a = lambda x, y : deep_matting(x, y, model1, 0)
+    b = lambda x, y : deep_matting(x, y, model2, 0)
+    c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
     main('../list.txt', a, b, c)
