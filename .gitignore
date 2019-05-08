@@ -3,3 +3,4 @@
 *.png
 *.bmp
 __pycache__
+*.py.swp

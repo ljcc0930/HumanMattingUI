@@ -9,11 +9,11 @@ from PySide2.QtWidgets import (QApplication, QLabel, QPushButton,
 from PySide2.QtCore import Slot, Qt, QSize
 from PySide2.QtGui import QPixmap, QImage, QCursor
 
-from utils import numpytoPixmap, ImageInputs
+from utils import numpytoPixmap, ImageInputs, addBlankToLayout
 from tools import painterTools, Concater
-from config import painterColors, toolTexts, toolKeys, colorKeys, buttonKeys
+import config
 
-from algorithm import calcGradient
+import algorithm
 
 from matting.deep_matting import load_model, deep_matting
 from matting.closed_form_matting import closed_form_matting_with_trimap
@@ -34,18 +34,23 @@ class ClickLabel(QLabel):
         self.widget.release(QMouseEvent.pos(), self.id)
     
 class MyButton(QPushButton):
-    def __init__(self, widget, text):
+    def __init__(self, widget, text, command = None):
+        if command is None:
+            command = text
+
         super(MyButton, self).__init__(text)
-        self.text = text
+        self.text = command
         self.widget = widget
         self.buttons = {
             'Undo':         self.widget.undo,
             'Run':          self.widget.run,
             'Save':         self.widget.save,
+            'SaveAlpha':    self.widget.saveAlpha,
             'Previous':     lambda : self.widget.newSet(True),
-            'Next':         self.widget.newSet
+            'Next':         self.widget.newSet,
+            'FillUnknown':  self.widget.fillUnknown,
         }
-        if self.text in painterColors:
+        if self.text in config.painterColors:
             self.button = lambda : self.widget.setColor(self.text)
         elif self.text in painterTools:
             self.button = lambda : self.widget.setTool(self.text)
@@ -86,6 +91,7 @@ class MyWidget(QWidget):
         self.setImage(1, array = self.trimap)
         show = self.image * 0.7 + self.trimap * 0.3
         self.setImage(2, array = show)
+        self.setImage(-1, array = self.final, resize = True)
 
     def setResult(self):
         for i, output in enumerate(self.outputs):
@@ -94,9 +100,9 @@ class MyWidget(QWidget):
 
     def newSet(self, prev = False):
         if prev:
-            self.image, self.trimap = self.imageList.previous()
+            self.image, self.trimap, self.final = self.imageList.previous()
         else:
-            self.image, self.trimap = self.imageList()
+            self.image, self.trimap, self.final = self.imageList()
 
         if len(self.trimap.shape) == 2:
             self.trimap = np.stack([self.trimap] * 3, axis = 2)
@@ -113,13 +119,16 @@ class MyWidget(QWidget):
         self.getGradient()
 
     def getGradient(self):
-        self.grad = calcGradient(self.image)
+        self.grad = algorithm.calcGradient(self.image)
 
     def resizeToNormal(self):
         f = 1 / self.f
         image = cv2.resize(self.image, None, fx = f, fy = f)
         trimap = cv2.resize(self.trimap, None, fx = f, fy = f)
         return image, trimap
+
+    def fillUnknown(self):
+        algorithm.fillUnknown(self.trimap, width = self.fillWidth)
 
     def undo(self):
         if len(self.history) > 0:
@@ -130,6 +139,9 @@ class MyWidget(QWidget):
         image, trimap = self.resizeToNormal()
         self.imageList.save(trimap)
 
+    def saveAlpha(self):
+        self.imageList.saveAlpha(self.final)
+
     def run(self):
         image, trimap = self.resizeToNormal()
         self.outputs = []
@@ -138,7 +150,6 @@ class MyWidget(QWidget):
             if output.ndim == 2:
                 output = np.stack([output] * 3, axis = 2)
             self.outputs.append(output)
-        self.final = np.zeros(image.shape)
         self.setResult()
 
     def getToolObject(self, id):
@@ -163,7 +174,7 @@ class MyWidget(QWidget):
             tool.release(pos)
 
     def setColor(self, color):
-        color = painterColors[color]
+        color = config.painterColors[color]
         self.tool.setColor(color)
 
     def setHistory(self):
@@ -205,15 +216,34 @@ class MyWidget(QWidget):
             self.imageLayout.addLayout(rowLayout)
 
     def initToolLayout(self):
+        bx, by = self.buttonScale
+        bC = self.buttonCol
+        blankSize = self.blankSize
         self.toolWidgets = []
 
-        for text in toolTexts:
-            temp = MyButton(self, text)
-            self.toolWidgets.append(temp)
+        for line in config.toolTexts:
+            tempLine = []
+            for command in line:
+                temp = MyButton(self, config.getText(command), command)
+                temp.setFixedSize(QSize(bx, by))
+                tempLine.append(temp)
+            self.toolWidgets.append(tempLine)
 
         self.toolLayout = QVBoxLayout()
-        for tool in self.toolWidgets:
-            self.toolLayout.addWidget(tool)
+        self.toolLayout.setAlignment(Qt.AlignTop)
+        for line in self.toolWidgets:
+            bR = (len(line) - 1) // bC + 1
+
+            for row in range(bR):
+                lineLayout = QHBoxLayout()
+                lineLayout.setAlignment(Qt.AlignLeft)
+
+                for tool in line[row * bC: (row + 1) * bC]:
+                    lineLayout.addWidget(tool)
+                self.toolLayout.addLayout(lineLayout)
+                addBlankToLayout(self.toolLayout, blankSize[0])
+
+            addBlankToLayout(self.toolLayout, blankSize[1])
 
     def __init__(self, imageList, functions):
         QWidget.__init__(self)
@@ -222,16 +252,26 @@ class MyWidget(QWidget):
         self.history = []
 
         self.imageList = imageList
-        self.scale = (400, 300)
+        self.scale = config.imgScale
         self.n = 4 + len(functions)
-        self.row = 3
+        self.row = config.imgRow
         self.col = (self.n + self.row - 1) // self.row
+
+        self.buttonScale = config.buttonScale
+        self.buttonCol = config.buttonCol
+        self.blankSize = config.blankSize
+
+        self.fillWidth = 2
 
         self.tool = painterTools['Pen']
         self.tool.setWidget(self)
         self.resultTool = Concater()
         self.resultTool.setK(8)
         self.splitK = 8
+
+
+        self.output = []
+        self.final = None
 
         self.initImageLayout()
         self.initToolLayout()
@@ -259,10 +299,13 @@ def main(inputList, *args):
 if __name__ == "__main__":
     # model1 = load_model('/home/wuxian/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
     # model2 = load_model('/home/wuxian/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
-    model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
-    model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+    # model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
+    # model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
 
-    a = lambda x, y : deep_matting(x, y, model1, 0)
-    b = lambda x, y : deep_matting(x, y, model2, 0)
-    c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
+    # a = lambda x, y : deep_matting(x, y, model1, 0)
+    # b = lambda x, y : deep_matting(x, y, model2, 0)
+    # c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
+    a = lambda x, y: y
+    b = lambda x, y: x
+    c = lambda x, y: x / 2 + y / 2
     main('../list.txt', a, b, c)

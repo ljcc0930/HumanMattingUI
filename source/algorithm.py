@@ -56,3 +56,6 @@ def floodFill(flag, theta, start):
             vis(x, y + 1)
     return np.logical_not(np.logical_xor(flag, f))
 
+def fillUnknown(self, width):
+    #TODO
+    pass
