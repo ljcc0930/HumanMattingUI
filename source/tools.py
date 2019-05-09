@@ -40,7 +40,7 @@ class PainterTool(BaseTool):
 
     def click(self, pos):
         self.checkWidget()
-        self.widget.setHistory()
+        self.widget.setHistory(self.toolName)
         self.afterClick(pos)
 
     def setColor(self, color):
@@ -80,15 +80,31 @@ class Filler(PainterTool):
     def __init__(self):
         super(Filler).__init__();
 
+    def addTheta(self, x):
+        if self.theta + x >= 0:
+            self.setTheta(self.theta + x)
+
     def setTheta(self, theta):
+        if theta < 0:
+            theta = 0
+
         Filler.theta = theta
+
+    def refill(self):
+        self.widget.setHistory(self.toolName)
+        self.fill(self.lasFill, self.lasColor)
 
     def afterClick(self, pos, *args):
         position = pos.y(), pos.x()
+        self.lasFill = position
+        self.lasColor = self.color
+        self.fill(position, self.color)
+
+    def fill(self, position, color):
         vis = floodFill(self.widget.grad, self.theta, position)
         vis = np.stack([vis] * 3, axis = 2)
         self.widget.trimap = (self.widget.trimap * vis + 
-                             self.color * np.logical_not(vis)).astype('uint8')
+                             color * np.logical_not(vis)).astype('uint8')
         self.flush()
 
 painterTools = {'Filler': Filler(), 'Pen': Pen()}

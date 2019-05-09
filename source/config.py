@@ -5,12 +5,16 @@ from tools import painterTools
 painterColors = {'Foreground':  (255, 255, 255), 
                  'Background':  (0, 0, 0), 
                  'Unknown':     (128, 128, 128)}
-buttonString = 'Squeeze FillUnknown UnknownUp|UnknownDown Undo Save/Run SaveAlpha/SplitUp|SplitDown ShowGrid UndoAlpha/Previous Next'
+buttonString = 'Foreground Background Unknown/Filler FillerUp|FillerDown FillerUpTen|FillerDownTen Pen/Squeeze FillUnknown UnknownUp|UnknownDown Undo Save/Run SaveAlpha/SplitUp|SplitDown ShowGrid UndoAlpha/Previous Next'
 buttonKeys = [[tool.split('|') for tool in block.split(' ')] for block in buttonString.split('/')]
 commandText = {
     'SaveAlpha': 'Save Alpha',
     'Save': 'Save Trimap',
     'FillUnknown': 'Fill Unknown',
+    'FillerUp': 'Filler+',
+    'FillerDown': 'Filler-',
+    'FillerUpTen': 'Filler+10',
+    'FillerDownTen': 'Filler-10',
     'UnknownUp': 'Unknown+',
     'UnknownDown': 'Unknown-',
     'SplitUp': 'Split Up',
@@ -29,7 +33,7 @@ toolKeys.sort()
 colorKeys = list(painterColors.keys())
 colorKeys.sort()
 
-toolTexts = [colorKeys, toolKeys] + buttonKeys
+toolTexts = buttonKeys
 
 blankSize = [10, 40]
 defaultBlank = 5

@@ -10,7 +10,7 @@ from PySide2.QtCore import Slot, Qt, QSize
 from PySide2.QtGui import QPixmap, QImage, QCursor
 
 from utils import numpytoPixmap, ImageInputs, addBlankToLayout
-from tools import painterTools, Concater
+import tools
 import config
 
 import algorithm
@@ -54,12 +54,16 @@ class MyButton(QPushButton):
             'Squeeze':      self.widget.squeeze,
             'SplitUp':      self.widget.splitUp,
             'SplitDown':    self.widget.splitDown,
+            'FillerUp':     self.widget.fillerUp,
+            'FillerDown':   lambda : self.widget.fillerUp(-1),
+            'FillerUpTen':  lambda : self.widget.fillerUp(10),
+            'FillerDownTen':lambda : self.widget.fillerUp(-10),
             'ShowGrid':     self.widget.showGrid,
             'UndoAlpha':    self.widget.undoAlpha,
         }
         if self.text in config.painterColors:
             self.button = lambda : self.widget.setColor(self.text)
-        elif self.text in painterTools:
+        elif self.text in tools.painterTools:
             self.button = lambda : self.widget.setTool(self.text)
         else:
             assert self.text in self.buttons, self.text + " not implement!"
@@ -171,6 +175,14 @@ class MyWidget(QWidget):
     def showGrid(self):
         self.gridFlag = not self.gridFlag
 
+    def fillerUp(self, num = 1):
+        if isinstance(self.tool, tools.Filler):
+            self.tool.addTheta(num)
+
+            if self.lastCommand == "Filler":
+                self.undo()
+                self.tool.refill()
+
     def unknownUp(self):
         if self.lastCommand != "FillUnknown":
             return
@@ -181,9 +193,11 @@ class MyWidget(QWidget):
     def unknownDown(self):
         if self.lastCommand != "FillUnknown":
             return
+
+        if self.fillWidth == 0:
+            return 
         self.undo()
-        if self.fillWidth > 0:
-            self.fillWidth -= 1
+        self.fillWidth -= 1
         self.fillUnknown(True)
 
     def fillUnknown(self, refill = False):
@@ -257,8 +271,8 @@ class MyWidget(QWidget):
         self.alphaHistory.append(self.final.copy())
 
     def setTool(self, toolName):
-        assert toolName in painterTools, toolName + " not implement!!"
-        self.tool = painterTools[toolName]
+        assert toolName in tools.painterTools, toolName + " not implement!!"
+        self.tool = tools.painterTools[toolName]
         assert self.tool.toolName == toolName, toolName + " mapping wrong object"
 
     def initImageLayout(self):
@@ -346,13 +360,12 @@ class MyWidget(QWidget):
         self.buttonCol = config.buttonCol
         self.blankSize = config.blankSize
 
-        self.fillWidth = 1
-
-        self.tool = painterTools['Pen']
+        self.tool = tools.painterTools['Pen']
         self.tool.setWidget(self)
-        self.resultTool = Concater()
+        self.resultTool = tools.Concater()
         self.gridFlag = True
 
+        self.fillWidth = 1
 
         self.outputs = []
         self.final = None
