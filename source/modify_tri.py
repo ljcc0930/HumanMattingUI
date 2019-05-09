@@ -194,8 +194,9 @@ class MyWidget(QWidget):
         if self.lastCommand != "FillUnknown":
             return
 
-        if self.fillWidth == 0:
+        if self.fillWidth == 1:
             return 
+
         self.undo()
         self.fillWidth -= 1
         self.fillUnknown(True)
