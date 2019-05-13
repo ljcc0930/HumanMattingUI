@@ -1,6 +1,9 @@
 import sys
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide2.QtWidgets import (QApplication, QLabel, QPushButton,
+                               QVBoxLayout, QWidget, QHBoxLayout,
+                               QSlider)
+from PySide2.QtCore import Slot, Qt, QSize
+from PySide2.QtGui import QPixmap, QImage, QFont
 
 class sliderdemo(QWidget):
    def __init__(self, parent = None):

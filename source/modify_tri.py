@@ -5,9 +5,10 @@ import numpy as np
 import cv2
 
 from PySide2.QtWidgets import (QApplication, QLabel, QPushButton,
-                               QVBoxLayout, QWidget, QHBoxLayout)
+                               QVBoxLayout, QWidget, QHBoxLayout,
+                               QSlider)
 from PySide2.QtCore import Slot, Qt, QSize
-from PySide2.QtGui import QPixmap, QImage, QCursor
+from PySide2.QtGui import QPixmap, QImage, QCursor, QFont
 
 from utils import numpytoPixmap, ImageInputs, addBlankToLayout
 import tools
