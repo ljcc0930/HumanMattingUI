@@ -67,11 +67,14 @@ class MyWidget(QWidget):
     def changeBackground(self, alpha):
         image, trimap = self.resizeToNormal()
         F, B = solve_foreground_background(image, alpha)
+        F = F * (F >= 0)
+        F = 255 * (F > 255) + F * (F <= 255)
         alpha = np.stack([alpha] * 3, axis = 2)
         show = F * alpha + (1 - alpha) * self.background
         return show
 
     def setResult(self):
+        return 
         for i, output in enumerate(self.outputs):
             alpha = output.mean(axis = 2) / 255.0
             show = self.changeBackground(alpha)
@@ -101,6 +104,7 @@ class MyWidget(QWidget):
 
 
         self.rawSize = (w, h)
+        self.rawImage = self.image
         self.background = config.getBackground((h, w), self.bgid)
         self.image = cv2.resize(self.image, None, fx = self.f, fy = self.f)
         self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
@@ -120,7 +124,8 @@ class MyWidget(QWidget):
 
     def resizeToNormal(self):
         f = 1 / self.f
-        image = cv2.resize(self.image, self.rawSize)
+        # image = cv2.resize(self.image, self.rawSize)
+        image = self.rawImage
         trimap = cv2.resize(self.trimap, self.rawSize)
         return image, trimap
 
@@ -147,6 +152,7 @@ class MyWidget(QWidget):
             self.resultTool.setArr(self.splitArrX, self.splitArrY)
 
     def solveForeground(self):
+        self.setHistory()
         self.trimap = np.ones(self.trimap.shape) * 255
 
     def showGrid(self):
@@ -189,8 +195,6 @@ class MyWidget(QWidget):
 
     def fillUnknown(self, refill = False):
         self.setHistory("FillUnknown")
-        if not refill:
-            self.fillWidth = 1
         self.trimap = algorithm.fillUnknown(self.trimap, width = self.fillWidth)
 
     def squeeze(self):
@@ -263,6 +267,10 @@ class MyWidget(QWidget):
     def setTool(self, toolName):
         assert toolName in tools.painterTools, toolName + " not implement!!"
         self.tool = tools.painterTools[toolName]
+        if toolName == "Filler":
+            self.setColor("Background")
+        if toolName == "Pen":
+            self.setColor("Unknown")
         assert self.tool.toolName == toolName, toolName + " mapping wrong object"
 
     def initImageLayout(self):
@@ -386,7 +394,7 @@ class MyWidget(QWidget):
         self.resultTool = tools.Concater()
         self.gridFlag = False
 
-        self.fillWidth = 1
+        self.fillWidth = 5
 
         self.bgid = 0
 
