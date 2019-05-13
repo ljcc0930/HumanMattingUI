@@ -8,8 +8,9 @@ painterColors = {'Foreground':  (255, 255, 255),
 buttonString = \
 '''ImageAlphaSlider-
 Foreground Background Unknown
-Filler FillerSlider- FillerUp|FillerDown Pen
-#Squeeze SolveForeground FillUnknown UnknownUp|UnknownDown Undo Save
+Filler FillerUp|FillerDown * FillerSlider- * * Pen
+#Squeeze SolveForeground FillUnknown UnknownUp|UnknownDown
+Undo Save
 Run SaveAlpha
 SplitUp|SplitDown ShowGrid UndoAlpha
 Previous Next'''
@@ -28,7 +29,7 @@ commandText = {
     'SplitDown': 'Split Down',
     'ShowGrid': 'Show Grid',
     'UndoAlpha': 'Undo Alpha',
-    'SolveForeground': 'Solve Foreground'
+    'SolveForeground': 'Clean Trimap'
     }
 
 def getText(command):
@@ -58,7 +59,7 @@ buttonScale = (100, 50)
 buttonCol = 3
 
 imgScale = (400, 300)
-imgRow = 3
+imgRow = 2
 
 defaultSplit = 3
 

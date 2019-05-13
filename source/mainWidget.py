@@ -258,7 +258,6 @@ class MyWidget(QWidget):
         assert self.tool.toolName == toolName, toolName + " mapping wrong object"
 
     def initImageLayout(self):
-        n, row, col = self.n, self.row, self.col
         imgx, imgy = self.scale
         self.texts = []
         for i in range(3):
@@ -280,10 +279,15 @@ class MyWidget(QWidget):
 
         self.newSet()
 
+        texts = self.texts[:3] + self.texts[-1:]
+
+        row = config.imgRow
+        col = (len(texts) + row - 1) // row
+
         self.imageLayout = QVBoxLayout()
         for i in range(row):
             rowLayout = QHBoxLayout()
-            for j in self.texts[i * col: (i + 1) * col]:
+            for j in texts[i * col: (i + 1) * col]:
                 rowLayout.addWidget(j)
             self.imageLayout.addLayout(rowLayout)
 
@@ -309,17 +313,18 @@ class MyWidget(QWidget):
                 for command in tool:
                     if command[0] == '#':
                         continue
+                    elif command == '*':
+                        tempLine.append(None)
                     elif command[-1] == '-':
                         command = command[:-1]
                         temp = MySlider(self, command, Qt.Horizontal)
                         temp.setTickPosition(QSlider.TicksBothSides)
                         lef, rig, typ = config.sliderConfig[command]
                         temp.setSliderType(lef, rig, type = typ)
-                        temp.setFixedSize(QSize(bx * 2 + config.defaultBlank, by))
+                        temp.setFixedSize(QSize(bx * 3 + config.defaultBlank * 3, by))
                         self.setSlider(temp, command)
 
                         tempTool.append(temp)
-                        tempLine.append(None)
                     else:
                         temp = MyPushButton(self, config.getText(command), command)
                         temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
@@ -361,8 +366,6 @@ class MyWidget(QWidget):
         self.imageList = imageList
         self.scale = config.imgScale
         self.n = 4 + len(functions)
-        self.row = config.imgRow
-        self.col = (self.n + self.row - 1) // self.row
 
         self.buttonScale = config.buttonScale
         self.buttonCol = config.buttonCol
@@ -373,7 +376,7 @@ class MyWidget(QWidget):
         self.tool = self.filler
         self.tool.setWidget(self)
         self.resultTool = tools.Concater()
-        self.gridFlag = True
+        self.gridFlag = False
 
         self.imageAlpha = 0.7
 
