@@ -81,15 +81,23 @@ class MyWidget(QWidget):
     def setImage(self, x, pixmap = None, array = None, resize = False, grid = False):
         assert pixmap is None or not grid, "Pixmap cannot draw grid."
 
-        array = array.astype('uint8')
         if pixmap is None:
+            if array is None:
+                self.texts[x].setPixmap(None)
+                return 
+
+            array = array.astype('uint8')
+
             if grid:
+                array = cv2.resize(array, None, fx = self.f, fy = self.f)
+
                 for i in self.splitArrX[:-1]:
+                    i = int(i * self.f)
                     array[i] = np.array((0, 255, 0))
                 for i in self.splitArrY[:-1]:
+                    i = int(i * self.f)
                     array[:, i] = np.array((0, 255, 0))
 
-                array = cv2.resize(array, None, fx = self.f, fy = self.f)
                 resize = False
 
             pixmap = numpytoPixmap(array)
@@ -99,9 +107,12 @@ class MyWidget(QWidget):
         self.texts[x].setPixmap(pixmap)
 
     def setFinal(self):
-        alpha = self.final.mean(axis = 2) / 255.0
-        show = self.changeBackground(alpha)
-        self.setImage(-1, array = show, resize = True, grid = self.gridFlag)
+        if self.final is None:
+            self.setImage(-1)
+        else:
+            alpha = self.final.mean(axis = 2) / 255.0
+            show = self.changeBackground(alpha)
+            self.setImage(-1, array = show, resize = True, grid = self.gridFlag)
 
     def setSet(self):
         self.setImage(0, array = self.image)
@@ -123,6 +134,8 @@ class MyWidget(QWidget):
             self.setImage(i + 3, array = show, resize = True, grid = self.gridFlag)
 
     def newSet(self, prev = False):
+        for text in self.texts:
+            text.setPixmap(None)
         if prev:
             self.image, self.trimap, self.final = self.imageList.previous()
         else:
@@ -331,9 +344,12 @@ class MyWidget(QWidget):
                     tool = [tool]
                 n = len(tool)
                 for command in tool:
-                    temp = MyButton(self, config.getText(command), command)
-                    temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
-                    tempTool.append(temp)
+                    if command[-1] == '-':
+                        pass
+                    else:
+                        temp = MyButton(self, config.getText(command), command)
+                        temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
+                        tempTool.append(temp)
                 tempLine.append(tempTool)
             self.toolWidgets.append(tempLine)
 
@@ -408,13 +424,15 @@ def main(inputList, *args):
 if __name__ == "__main__":
     # model1 = load_model('/home/wuxian/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
     # model2 = load_model('/home/wuxian/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+    '''
     model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
     model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
 
     a = lambda x, y : deep_matting(x, y, model1, 0)
     b = lambda x, y : deep_matting(x, y, model2, 0)
     c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
-    # a = lambda x, y: y
-    # b = lambda x, y: x
-    # c = lambda x, y: x / 2 + y / 2
-    main('../final_list.txt', a, b, c)
+    '''
+    a = lambda x, y: y
+    b = lambda x, y: x
+    c = lambda x, y: x / 2 + y / 2
+    main('../list.txt', a, b, c)

@@ -43,8 +43,6 @@ class ImageInputs:
         self.nowAlpha = None
         if os.path.exists(alphaPath):
             self.nowAlpha = cv2.imread(alphaPath)
-        if self.nowAlpha is None:
-            self.nowAlpha = np.zeros(self.nowImg.shape)
 
         return self.nowImg, self.nowTri, self.nowAlpha
 

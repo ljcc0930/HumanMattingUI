@@ -5,8 +5,14 @@ from tools import painterTools
 painterColors = {'Foreground':  (255, 255, 255), 
                  'Background':  (0, 0, 0), 
                  'Unknown':     (128, 128, 128)}
-buttonString = 'Foreground Background Unknown/Filler FillerUp|FillerDown FillerUpTen|FillerDownTen Pen/Squeeze FillUnknown UnknownUp|UnknownDown Undo Save/Run SaveAlpha/SplitUp|SplitDown ShowGrid UndoAlpha/Previous Next'
-buttonKeys = [[tool.split('|') for tool in block.split(' ')] for block in buttonString.split('/')]
+buttonString = \
+'''Foreground Background Unknown
+Filler FillerUp|FillerDown FillerSlider- Pen
+Squeeze FillUnknown UnknownUp|UnknownDown Undo Save
+Run SaveAlpha
+SplitUp|SplitDown ShowGrid UndoAlpha
+Previous Next'''
+buttonKeys = [[tool.split('|') for tool in block.split(' ')] for block in buttonString.split('\n')]
 commandText = {
     'SaveAlpha': 'Save Alpha',
     'Save': 'Save Trimap',
