@@ -199,13 +199,17 @@ class MyWidget(QWidget):
     def showGrid(self):
         self.gridFlag = not self.gridFlag
 
-    def fillerUp(self, num = 1):
-        if isinstance(self.tool, tools.Filler):
-            self.tool.addTheta(num)
+    def setFiller(self, num):
+        self.filler.setTheta(num)
+        self.fillerSlider.setValue(num)
 
-            if self.lastCommand == "Filler":
-                self.undo()
-                self.tool.refill()
+        if self.lastCommand == "Filler":
+            self.undo()
+            self.tool.refill()
+
+    def fillerUp(self, num = 1):
+        theta = self.filler.getTheta()
+        self.setFiller(theta + num)
 
     def unknownUp(self):
         if self.lastCommand != "FillUnknown":
@@ -330,6 +334,10 @@ class MyWidget(QWidget):
                 rowLayout.addWidget(j)
             self.imageLayout.addLayout(rowLayout)
 
+    def setSlider(self, obj, command):
+        if command == 'FillerSlider':
+            self.fillerSlider = obj
+
     def initToolLayout(self):
         bx, by = self.buttonScale
         bC = self.buttonCol
@@ -345,11 +353,17 @@ class MyWidget(QWidget):
                 n = len(tool)
                 for command in tool:
                     if command[-1] == '-':
-                        pass
+                        temp = QSlider(Qt.Horizontal)
+                        temp.setTickPosition(QSlider.TicksBothSides)
+                        temp.setMinimum(0)
+                        temp.setMaximum(250)
+                        temp.setTickInterval(50)
+                        temp.setSingleStep(0.01)
+                        self.setSlider(temp, command[:-1])
                     else:
                         temp = MyButton(self, config.getText(command), command)
                         temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
-                        tempTool.append(temp)
+                    tempTool.append(temp)
                 tempLine.append(tempTool)
             self.toolWidgets.append(tempLine)
 
@@ -376,6 +390,7 @@ class MyWidget(QWidget):
         QWidget.__init__(self)
 
         self.functions = functions
+        self.lastCommand = None
         self.history = []
 
         self.imageList = imageList
@@ -388,7 +403,9 @@ class MyWidget(QWidget):
         self.buttonCol = config.buttonCol
         self.blankSize = config.blankSize
 
-        self.tool = tools.painterTools['Pen']
+        self.filler = tools.painterTools['Filler']
+        self.pen = tools.painterTools['Pen']
+        self.tool = self.filler
         self.tool.setWidget(self)
         self.resultTool = tools.Concater()
         self.gridFlag = True
