@@ -4,12 +4,12 @@ import os
 import numpy as np
 import cv2
 
-from PySide2.QtWidgets import (QApplication, QLabel, QPushButton,
-                               QVBoxLayout, QWidget, QHBoxLayout,
-                               QSlider)
+from PySide2.QtWidgets import (QApplication, QVBoxLayout, QWidget, 
+                               QHBoxLayout, QSlider)
 from PySide2.QtCore import Slot, Qt, QSize
 from PySide2.QtGui import QPixmap, QImage, QCursor, QFont
 
+from widgets import MyPushButton, ClickLabel, MySlider
 from utils import numpytoPixmap, ImageInputs, addBlankToLayout
 import tools
 import config
@@ -18,64 +18,6 @@ import algorithm
 
 from matting.deep_matting import load_model, deep_matting
 from matting.closed_form_matting import closed_form_matting_with_trimap
-
-class ClickLabel(QLabel):
-    def __init__(self, widget, id, text):
-        super(ClickLabel, self).__init__(text)
-        self.widget = widget
-        self.id = id
-
-    def mousePressEvent(self, QMouseEvent):
-        self.widget.click(QMouseEvent.pos(), self.id)
-
-    def mouseMoveEvent(self, QMouseEvent):
-        self.widget.drag(QMouseEvent.pos(), self.id)
-
-    def mouseReleaseEvent(self, QMouseEvent):
-        self.widget.release(QMouseEvent.pos(), self.id)
-    
-class MyButton(QPushButton):
-    def __init__(self, widget, text, command = None):
-        if command is None:
-            command = text
-
-        super(MyButton, self).__init__(text)
-        self.text = command
-        self.widget = widget
-        self.buttons = {
-            'Undo':         self.widget.undo,
-            'Run':          self.widget.run,
-            'Save':         self.widget.save,
-            'SaveAlpha':    self.widget.saveAlpha,
-            'Previous':     lambda : self.widget.newSet(True),
-            'Next':         self.widget.newSet,
-            'FillUnknown':  self.widget.fillUnknown,
-            'UnknownUp':    self.widget.unknownUp,
-            'UnknownDown':  self.widget.unknownDown,
-            'Squeeze':      self.widget.squeeze,
-            'SplitUp':      self.widget.splitUp,
-            'SplitDown':    self.widget.splitDown,
-            'FillerUp':     self.widget.fillerUp,
-            'FillerDown':   lambda : self.widget.fillerUp(-1),
-            'FillerUpTen':  lambda : self.widget.fillerUp(10),
-            'FillerDownTen':lambda : self.widget.fillerUp(-10),
-            'ShowGrid':     self.widget.showGrid,
-            'UndoAlpha':    self.widget.undoAlpha,
-        }
-        if self.text in config.painterColors:
-            self.button = lambda : self.widget.setColor(self.text)
-        elif self.text in tools.painterTools:
-            self.button = lambda : self.widget.setTool(self.text)
-        else:
-            assert self.text in self.buttons, self.text + " not implement!"
-            self.button = self.buttons[self.text]
-
-    def mouseReleaseEvent(self, QMouseEvent):
-        super(MyButton, self).mouseReleaseEvent(QMouseEvent)
-        self.button()
-        self.widget.setSet()
-        self.widget.setResult()
-
 
 class MyWidget(QWidget):
     def setImage(self, x, pixmap = None, array = None, resize = False, grid = False):
@@ -352,16 +294,16 @@ class MyWidget(QWidget):
                     tool = [tool]
                 n = len(tool)
                 for command in tool:
-                    if command[-1] == '-':
-                        temp = QSlider(Qt.Horizontal)
+                    if command[-1] == '#':
+                        continue
+                    elif command[-1] == '-':
+                        command = command[:-1]
+                        temp = MySlider(self, command, Qt.Horizontal)
                         temp.setTickPosition(QSlider.TicksBothSides)
-                        temp.setMinimum(0)
-                        temp.setMaximum(250)
-                        temp.setTickInterval(50)
-                        temp.setSingleStep(0.01)
-                        self.setSlider(temp, command[:-1])
+                        temp.setSliderType(1, 250, type = "log")
+                        self.setSlider(temp, command)
                     else:
-                        temp = MyButton(self, config.getText(command), command)
+                        temp = MyPushButton(self, config.getText(command), command)
                         temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
                     tempTool.append(temp)
                 tempLine.append(tempTool)
