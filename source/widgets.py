@@ -98,7 +98,6 @@ class MySlider(QSlider):
             minimum = max(minimum, eps)
             minimum = int(math.log(minimum) * f_)
             maximum = int(math.log(maximum) * f_)
-            print(minimum, maximum)
             self.setMinimum(minimum)
             self.setMaximum(maximum)
             self.setTickInterval((maximum - minimum) // 10)
