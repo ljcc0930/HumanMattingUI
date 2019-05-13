@@ -8,15 +8,14 @@ painterColors = {'Foreground':  (255, 255, 255),
 buttonString = \
 '''ImageAlphaSlider-
 Foreground Background Unknown
-Filler FillerUp|FillerDown * FillerSlider- * * Pen
+Filler FillerUp|FillerDown * FillerSlider- * * Pen Undo #Save
 #Squeeze SolveForeground FillUnknown UnknownUp|UnknownDown
-Undo Save
-Run SaveAlpha
-SplitUp|SplitDown ShowGrid UndoAlpha
+Run SaveAlpha ChangeBG
 Previous Next'''
+# SplitUp|SplitDown ShowGrid UndoAlpha
 buttonKeys = [[tool.split('|') for tool in block.split(' ')] for block in buttonString.split('\n')]
 commandText = {
-    'SaveAlpha': 'Save Alpha',
+    'SaveAlpha': 'Save',
     'Save': 'Save Trimap',
     'FillUnknown': 'Fill Unknown',
     'FillerUp': 'Filler+',
@@ -29,7 +28,8 @@ commandText = {
     'SplitDown': 'Split Down',
     'ShowGrid': 'Show Grid',
     'UndoAlpha': 'Undo Alpha',
-    'SolveForeground': 'Clean Trimap'
+    'SolveForeground': 'Clean Trimap',
+    'ChangeBG': 'Change Background',
     }
 
 def getText(command):
@@ -59,19 +59,26 @@ buttonScale = (100, 50)
 buttonCol = 3
 
 imgScale = (750, 475)
-imgRow = 1
+imgRow = 2
 
 defaultSplit = 3
 
-background = np.ones([20, 20, 3]).astype("uint8") * 255
-background[:10, :10] = 128
-background[10:, 10:] = 128
+gridBG = np.ones([20, 20, 3]).astype("uint8") * 255
+gridBG[:10, :10] = 128
+gridBG[10:, 10:] = 128
+blueBG = np.array([[[255, 0, 0]]])
+greenBG = np.array([[[0, 255, 0]]])
+redBG= np.array([[[0, 0, 255]]])
 
-def getBackground(size):
+backgrounds = [gridBG, redBG, blueBG, greenBG]
+
+def getBackground(size, background = 2):
+    background = background % len(backgrounds)
+    background = backgrounds[background]
     bh, bw = background.shape[:2]
     h, w = size[:2]
-    dh = (h - 1) // bh + 1
-    dw = (w - 1) // bw + 1
+    dh = h // bh + 10
+    dw = w // bw + 10
     line = np.concatenate([background] * dw, axis = 1)
     bg = np.concatenate([line] * dh, axis = 0)[:h, :w]
     return bg

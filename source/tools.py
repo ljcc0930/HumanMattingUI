@@ -36,7 +36,7 @@ class BaseTool:
 
 class PainterTool(BaseTool):
     toolName = 'Painter'
-    color = (128, 128, 128)
+    color = (0, 0, 0)
 
     def click(self, pos):
         self.checkWidget()

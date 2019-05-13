@@ -105,6 +105,7 @@ def fillUnknown(img, width, in_flag = True):
         b = np.logical_and(b, np.logical_not(U))
         a = b
 
+    a = np.logical_and(a, F)
     U = np.logical_or(a, U)
     B = np.logical_and(B, np.logical_not(U))
     F = np.logical_and(F, np.logical_not(U))

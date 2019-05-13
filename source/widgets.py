@@ -43,6 +43,7 @@ class MyPushButton(QPushButton):
             'ShowGrid':         widget.showGrid,
             'UndoAlpha':        widget.undoAlpha,
             'SolveForeground':  widget.solveForeground,
+            'ChangeBG':         widget.changeBG,
         }
 
     def __init__(self, widget, text, command = None):

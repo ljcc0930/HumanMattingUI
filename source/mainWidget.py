@@ -11,6 +11,7 @@ from PySide2.QtGui import QPixmap, QImage, QCursor, QFont
 
 from widgets import MyPushButton, ClickLabel, MySlider
 from utils import numpytoPixmap, ImageInputs, addBlankToLayout
+from matting.solve_foreground_background import solve_foreground_background
 import tools
 import config
 
@@ -28,7 +29,7 @@ class MyWidget(QWidget):
             array = array.astype('uint8')
 
             if grid:
-                array = cv2.resize(array, None, fx = self.f, fy = self.f)
+                array = cv2.resize(array, self.rawSize)
 
                 for i in self.splitArrX[:-1]:
                     i = int(i * self.f)
@@ -59,10 +60,15 @@ class MyWidget(QWidget):
         show = self.image * (1 - self.imageAlpha) + self.trimap * self.imageAlpha
         self.setImage(2, array = show)
 
+    def changeBG(self):
+        self.bgid += 1
+        self.background = config.getBackground(self.rawSize[::-1], self.bgid)
+
     def changeBackground(self, alpha):
         image, trimap = self.resizeToNormal()
+        F, B = solve_foreground_background(image, alpha)
         alpha = np.stack([alpha] * 3, axis = 2)
-        show = image * alpha + (1 - alpha) * self.background
+        show = F * alpha + (1 - alpha) * self.background
         return show
 
     def setResult(self):
@@ -93,8 +99,9 @@ class MyWidget(QWidget):
         for i in range(config.defaultSplit):
             self.splitUp()
 
-        self.background = config.getBackground((h, w))
 
+        self.rawSize = (w, h)
+        self.background = config.getBackground((h, w), self.bgid)
         self.image = cv2.resize(self.image, None, fx = self.f, fy = self.f)
         self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
 
@@ -113,8 +120,8 @@ class MyWidget(QWidget):
 
     def resizeToNormal(self):
         f = 1 / self.f
-        image = cv2.resize(self.image, None, fx = f, fy = f)
-        trimap = cv2.resize(self.trimap, None, fx = f, fy = f)
+        image = cv2.resize(self.image, self.rawSize)
+        trimap = cv2.resize(self.trimap, self.rawSize)
         return image, trimap
 
     def splitUp(self):
@@ -207,6 +214,7 @@ class MyWidget(QWidget):
 
     def saveAlpha(self):
         self.imageList.saveAlpha(self.final)
+        self.save()
 
     def run(self):
         image, trimap = self.resizeToNormal()
@@ -279,7 +287,7 @@ class MyWidget(QWidget):
 
         self.newSet()
 
-        texts = self.texts[2:3] + self.texts[-1:]
+        texts = self.texts[:3] + self.texts[-1:]
 
         row = config.imgRow
         col = (len(texts) + row - 1) // row
@@ -380,17 +388,19 @@ class MyWidget(QWidget):
 
         self.fillWidth = 1
 
+        self.bgid = 0
+
         self.outputs = []
         self.final = None
 
-        self.imageAlpha = 0.7
+        self.imageAlpha = 0.3
 
         MyPushButton.setWidget(self)
         self.initImageLayout()
         self.initToolLayout()
 
-        self.setImageAlpha(0.7)
 
+        self.setImageAlpha(self.imageAlpha)
 
 
         self.mainLayout = QHBoxLayout()
