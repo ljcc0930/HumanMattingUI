@@ -61,6 +61,7 @@ class MyPushButton(QPushButton):
         self.button()
         self.widget.setSet()
         self.widget.setResult()
+        self.widget.setFinal()
 
 class MySlider(QSlider):
     def __init__(self, widget, command, direction):

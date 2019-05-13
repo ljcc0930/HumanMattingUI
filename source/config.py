@@ -8,7 +8,7 @@ painterColors = {'Foreground':  (255, 255, 255),
 buttonString = \
 '''Foreground Background Unknown
 Filler FillerUp|FillerDown FillerSlider- Pen
-Squeeze FillUnknown UnknownUp|UnknownDown Undo Save
+#Squeeze #FillUnknown #UnknownUp|#UnknownDown Undo Save
 Run SaveAlpha
 SplitUp|SplitDown ShowGrid UndoAlpha
 Previous Next'''

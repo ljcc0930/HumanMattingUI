@@ -61,7 +61,7 @@ class MyWidget(QWidget):
         self.setImage(1, array = self.trimap)
         show = self.image * 0.7 + self.trimap * 0.3
         self.setImage(2, array = show)
-        self.setFinal()
+        # self.setFinal()
 
     def changeBackground(self, alpha):
         image, trimap = self.resizeToNormal()
@@ -74,6 +74,7 @@ class MyWidget(QWidget):
             alpha = output.mean(axis = 2) / 255.0
             show = self.changeBackground(alpha)
             self.setImage(i + 3, array = show, resize = True, grid = self.gridFlag)
+        # self.setFinal()
 
     def newSet(self, prev = False):
         for text in self.texts:
@@ -105,6 +106,7 @@ class MyWidget(QWidget):
         self.outputs = []
 
         self.setSet()
+        self.setFinal()
         self.getGradient()
 
     def getGradient(self):
@@ -151,7 +153,7 @@ class MyWidget(QWidget):
 
     def fillerUp(self, num = 1):
         theta = self.filler.getTheta()
-        self.setFiller(theta + num)
+        self.setFiller(theta * (1.01 ** num))
 
     def unknownUp(self):
         if self.lastCommand != "FillUnknown":
@@ -207,6 +209,8 @@ class MyWidget(QWidget):
             if output.ndim == 2:
                 output = np.stack([output] * 3, axis = 2)
             self.outputs.append(output)
+        if self.final is None:
+            self.final = self.outputs[-1].copy()
         self.setResult()
 
     def getToolObject(self, id):
@@ -294,7 +298,7 @@ class MyWidget(QWidget):
                     tool = [tool]
                 n = len(tool)
                 for command in tool:
-                    if command[-1] == '#':
+                    if command[0] == '#':
                         continue
                     elif command[-1] == '-':
                         command = command[:-1]
@@ -306,8 +310,10 @@ class MyWidget(QWidget):
                         temp = MyPushButton(self, config.getText(command), command)
                         temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
                     tempTool.append(temp)
-                tempLine.append(tempTool)
-            self.toolWidgets.append(tempLine)
+                if len(tempTool) > 0:
+                    tempLine.append(tempTool)
+            if len(tempLine) > 0:
+                self.toolWidgets.append(tempLine)
 
         self.toolLayout = QVBoxLayout()
         self.toolLayout.setAlignment(Qt.AlignTop)
@@ -368,7 +374,7 @@ class MyWidget(QWidget):
         self.setLayout(self.mainLayout)
 
 
-def main(inputList, *args):
+def initialWidget(inputList, *args):
     inp = ImageInputs(inputList)
     app = QApplication(sys.argv)
 
@@ -383,15 +389,20 @@ def main(inputList, *args):
 if __name__ == "__main__":
     # model1 = load_model('/home/wuxian/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
     # model2 = load_model('/home/wuxian/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
-    '''
-    model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
-    model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+    methods = []
+    try:
+        model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
+        model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
 
-    a = lambda x, y : deep_matting(x, y, model1, 0)
-    b = lambda x, y : deep_matting(x, y, model2, 0)
-    c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
-    '''
-    a = lambda x, y: y
-    b = lambda x, y: x
-    c = lambda x, y: x / 2 + y / 2
-    main('../list.txt', a, b, c)
+        a = lambda x, y : deep_matting(x, y, model1, 0)
+        b = lambda x, y : deep_matting(x, y, model2, 0)
+        c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
+        loadList = '../final_list.txt'
+        methods = [a, b, c]
+    except:
+        a = lambda x, y: y
+        b = lambda x, y: x
+        c = lambda x, y: x / 2 + y / 2
+        loadList = '../list.txt'
+        methods = [a, b, c]
+    initialWidget(loadList, *methods)
