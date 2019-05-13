@@ -56,7 +56,7 @@ class MyWidget(QWidget):
     def setSet(self):
         self.setImage(0, array = self.image)
         self.setImage(1, array = self.trimap)
-        show = self.image * self.imageAlpha + self.trimap * (1 - self.imageAlpha)
+        show = self.image * (1 - self.imageAlpha) + self.trimap * self.imageAlpha
         self.setImage(2, array = show)
 
     def changeBackground(self, alpha):
@@ -216,7 +216,7 @@ class MyWidget(QWidget):
             if output.ndim == 2:
                 output = np.stack([output] * 3, axis = 2)
             self.outputs.append(output)
-        if self.final is None:
+        if True: #self.final is None:
             self.final = self.outputs[-1].copy()
         self.setResult()
 
@@ -279,7 +279,7 @@ class MyWidget(QWidget):
 
         self.newSet()
 
-        texts = self.texts[:3] + self.texts[-1:]
+        texts = self.texts[2:3] + self.texts[-1:]
 
         row = config.imgRow
         col = (len(texts) + row - 1) // row
@@ -321,7 +321,7 @@ class MyWidget(QWidget):
                         temp.setTickPosition(QSlider.TicksBothSides)
                         lef, rig, typ = config.sliderConfig[command]
                         temp.setSliderType(lef, rig, type = typ)
-                        temp.setFixedSize(QSize(bx * 3 + config.defaultBlank * 3, by))
+                        temp.setFixedSize(QSize(bx * 3 + config.defaultBlank * 2, by))
                         self.setSlider(temp, command)
 
                         tempTool.append(temp)
@@ -378,16 +378,19 @@ class MyWidget(QWidget):
         self.resultTool = tools.Concater()
         self.gridFlag = False
 
-        self.imageAlpha = 0.7
-
         self.fillWidth = 1
 
         self.outputs = []
         self.final = None
 
+        self.imageAlpha = 0.7
+
         MyPushButton.setWidget(self)
         self.initImageLayout()
         self.initToolLayout()
+
+        self.setImageAlpha(0.7)
+
 
 
         self.mainLayout = QHBoxLayout()

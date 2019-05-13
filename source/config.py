@@ -38,8 +38,8 @@ def getText(command):
     return commandText[command]
 
 sliderConfig = {
-"ImageAlphaSlider":   (0, 1, "continuous"),
-"FillerSlider": (1, 250, "log")
+"ImageAlphaSlider":     (0, 1, "continuous"),
+"FillerSlider":         (1, 250, "log")
 }
 
 
@@ -58,8 +58,8 @@ for i in range(len(blankSize) - 1)[::-1]:
 buttonScale = (100, 50)
 buttonCol = 3
 
-imgScale = (400, 300)
-imgRow = 2
+imgScale = (750, 475)
+imgRow = 1
 
 defaultSplit = 3
 
