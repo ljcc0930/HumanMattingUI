@@ -84,9 +84,9 @@ class MyWidget(QWidget):
         if pixmap is None:
             if grid:
                 for i in self.splitArrX[:-1]:
-                    array[i] = np.array((255, 0, 0))
+                    array[i] = np.array((0, 255, 0))
                 for i in self.splitArrY[:-1]:
-                    array[:, i] = np.array((255, 0, 0))
+                    array[:, i] = np.array((0, 255, 0))
 
                 array = cv2.resize(array, None, fx = self.f, fy = self.f)
                 resize = False
@@ -98,7 +98,9 @@ class MyWidget(QWidget):
         self.texts[x].setPixmap(pixmap)
 
     def setFinal(self):
-        self.setImage(-1, array = self.final, resize = True, grid = self.gridFlag)
+        alpha = self.final.mean(axis = 2) / 255.0
+        show = self.changeBackground(alpha)
+        self.setImage(-1, array = show, resize = True, grid = self.gridFlag)
 
     def setSet(self):
         self.setImage(0, array = self.image)
@@ -107,9 +109,17 @@ class MyWidget(QWidget):
         self.setImage(2, array = show)
         self.setFinal()
 
+    def changeBackground(self, alpha):
+        image, trimap = self.resizeToNormal()
+        alpha = np.stack([alpha] * 3, axis = 2)
+        show = image * alpha + (1 - alpha) * np.array((0, 0, 205))
+        return show
+
     def setResult(self):
         for i, output in enumerate(self.outputs):
-            self.setImage(i + 3, array = output, resize = True, grid = self.gridFlag)
+            alpha = output.mean(axis = 2) / 255.0
+            show = self.changeBackground(alpha)
+            self.setImage(i + 3, array = show, resize = True, grid = self.gridFlag)
 
     def newSet(self, prev = False):
         if prev:
@@ -397,13 +407,13 @@ def main(inputList, *args):
 if __name__ == "__main__":
     # model1 = load_model('/home/wuxian/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
     # model2 = load_model('/home/wuxian/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
-    # model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
-    # model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+    model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
+    model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
 
-    # a = lambda x, y : deep_matting(x, y, model1, 0)
-    # b = lambda x, y : deep_matting(x, y, model2, 0)
-    # c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
-    a = lambda x, y: y
-    b = lambda x, y: x
-    c = lambda x, y: x / 2 + y / 2
-    main('../list.txt', a, b, c)
+    a = lambda x, y : deep_matting(x, y, model1, 0)
+    b = lambda x, y : deep_matting(x, y, model2, 0)
+    c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
+    # a = lambda x, y: y
+    # b = lambda x, y: x
+    # c = lambda x, y: x / 2 + y / 2
+    main('../final_list.txt', a, b, c)
