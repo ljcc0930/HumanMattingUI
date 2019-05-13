@@ -1,12 +1,20 @@
+from matting.deep_matting import load_model, deep_matting
+from matting.closed_form_matting import closed_form_matting_with_trimap
+
 from mainWidget import initialWidget
 
 def main():
-    # model1 = load_model('/home/wuxian/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
-    # model2 = load_model('/home/wuxian/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
     methods = []
     try:
-        model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
-        model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+        raise Exception("aa")
+        model1 = None
+        model2 = None
+        try:
+            model1 = load_model('/data2/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
+            model2 = load_model('/data2/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
+        except:
+            model1 = load_model('/home/wuxian/human_matting/models/alpha_models_0305/alpha_net_100.pth', 0)
+            model2 = load_model('/home/wuxian/human_matting/models/alpha_models_bg/alpha_net_100.pth', 0)
 
         a = lambda x, y : deep_matting(x, y, model1, 0)
         b = lambda x, y : deep_matting(x, y, model2, 0)

@@ -16,9 +16,6 @@ import config
 
 import algorithm
 
-from matting.deep_matting import load_model, deep_matting
-from matting.closed_form_matting import closed_form_matting_with_trimap
-
 class MyWidget(QWidget):
     def setImage(self, x, pixmap = None, array = None, resize = False, grid = False):
         assert pixmap is None or not grid, "Pixmap cannot draw grid."
@@ -59,13 +56,13 @@ class MyWidget(QWidget):
     def setSet(self):
         self.setImage(0, array = self.image)
         self.setImage(1, array = self.trimap)
-        show = self.image * 0.7 + self.trimap * 0.3
+        show = self.image * self.imageAlpha + self.trimap * (1 - self.imageAlpha)
         self.setImage(2, array = show)
 
     def changeBackground(self, alpha):
         image, trimap = self.resizeToNormal()
         alpha = np.stack([alpha] * 3, axis = 2)
-        show = image * alpha + (1 - alpha) * np.array((0, 0, 205))
+        show = image * alpha + (1 - alpha) * self.background
         return show
 
     def setResult(self):
@@ -96,12 +93,16 @@ class MyWidget(QWidget):
         for i in range(config.defaultSplit):
             self.splitUp()
 
+        self.background = config.getBackground((h, w))
+
         self.image = cv2.resize(self.image, None, fx = self.f, fy = self.f)
         self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
 
         self.history = []
         self.alphaHistory = []
         self.outputs = []
+        
+        self.run()
 
         self.setSet()
         self.setFinal()
@@ -138,8 +139,16 @@ class MyWidget(QWidget):
             self.splitArrY = self.splitArrY[1::2]
             self.resultTool.setArr(self.splitArrX, self.splitArrY)
 
+    def solveForeground(self):
+        self.trimap = np.ones(self.trimap.shape) * 255
+
     def showGrid(self):
         self.gridFlag = not self.gridFlag
+
+    def setImageAlpha(self, num):
+        self.imageAlpha = num
+        self.setSet()
+        self.imageAlphaSlider.setValue(num)
 
     def setFiller(self, num):
         self.filler.setTheta(num)
@@ -279,7 +288,9 @@ class MyWidget(QWidget):
             self.imageLayout.addLayout(rowLayout)
 
     def setSlider(self, obj, command):
-        if command == 'FillerSlider':
+        if command == 'ImageAlphaSlider':
+            self.imageAlphaSlider = obj
+        elif command == 'FillerSlider':
             self.fillerSlider = obj
 
     def initToolLayout(self):
@@ -302,12 +313,18 @@ class MyWidget(QWidget):
                         command = command[:-1]
                         temp = MySlider(self, command, Qt.Horizontal)
                         temp.setTickPosition(QSlider.TicksBothSides)
-                        temp.setSliderType(1, 250, type = "log")
+                        lef, rig, typ = config.sliderConfig[command]
+                        temp.setSliderType(lef, rig, type = typ)
+                        temp.setFixedSize(QSize(bx * 2 + config.defaultBlank, by))
                         self.setSlider(temp, command)
+
+                        tempTool.append(temp)
+                        tempLine.append(None)
                     else:
                         temp = MyPushButton(self, config.getText(command), command)
                         temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
-                    tempTool.append(temp)
+                        tempTool.append(temp)
+
                 if len(tempTool) > 0:
                     tempLine.append(tempTool)
             if len(tempLine) > 0:
@@ -323,10 +340,12 @@ class MyWidget(QWidget):
                 lineLayout.setAlignment(Qt.AlignLeft)
 
                 for tool in line[row * bC: (row + 1) * bC]:
-                    singleToolLayout = QVBoxLayout()
-                    for obj in tool:
-                        singleToolLayout.addWidget(obj)
-                    lineLayout.addLayout(singleToolLayout)
+                    if tool is not None:
+                        singleToolLayout = QVBoxLayout()
+                        for obj in tool:
+                            if obj is not None:
+                                singleToolLayout.addWidget(obj)
+                        lineLayout.addLayout(singleToolLayout)
                 self.toolLayout.addLayout(lineLayout)
                 addBlankToLayout(self.toolLayout, blankSize[0])
 
@@ -356,11 +375,14 @@ class MyWidget(QWidget):
         self.resultTool = tools.Concater()
         self.gridFlag = True
 
+        self.imageAlpha = 0.7
+
         self.fillWidth = 1
 
         self.outputs = []
         self.final = None
 
+        MyPushButton.setWidget(self)
         self.initImageLayout()
         self.initToolLayout()
 

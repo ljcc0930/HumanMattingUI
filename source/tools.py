@@ -92,7 +92,7 @@ class Filler(PainterTool):
 
     def getTheta(self):
         return self.theta
-
+    
     def refill(self):
         self.widget.setHistory(self.toolName)
         self.fill(self.lasFill, self.lasColor)
