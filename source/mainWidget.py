@@ -69,6 +69,7 @@ class MyWidget(QWidget):
         F, B = solve_foreground_background(image, alpha)
         F = F * (F >= 0)
         F = 255 * (F > 255) + F * (F <= 255)
+        self.foreground = F
         alpha = np.stack([alpha] * 3, axis = 2)
         show = F * alpha + (1 - alpha) * self.background
         return show
@@ -217,7 +218,8 @@ class MyWidget(QWidget):
         self.imageList.save(trimap)
 
     def saveAlpha(self):
-        self.imageList.saveAlpha(self.final)
+        # self.imageList.saveAlpha(self.final)
+        self.imageList.saveBoth(self.final, self.foreground)
         self.save()
 
     def run(self):

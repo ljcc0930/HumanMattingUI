@@ -68,3 +68,9 @@ class ImageInputs:
         alphaPath = self.list[self.cnt][2]
         cv2.imwrite(alphaPath, alpha)
 
+    def saveBoth(self, alpha, foreground):
+        alphaPath = self.list[self.cnt][2]
+        b_channel, g_channel, r_channel = cv2.split(foreground)
+        a_channel = alpha.mean(axis = 2)
+        img_bgra = cv2.merge((b_channel, g_channel, r_channel, a_channel))
+        cv2.imwrite(alphaPath, img_bgra)

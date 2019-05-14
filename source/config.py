@@ -59,6 +59,7 @@ buttonScale = (100, 50)
 buttonCol = 3
 
 imgScale = (750, 475)
+# imgScale = (500, 400)
 imgRow = 2
 
 defaultSplit = 3

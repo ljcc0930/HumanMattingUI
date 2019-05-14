@@ -6,6 +6,9 @@ import random
 dir_path = ['/data2/pictureWhite/face-tri-10000-modified/']
 dir_path = ['/data2/pictureWhite/images'] + dir_path
 dir_path = dir_path + ['/data2/pictureWhite/final_result']
+# dir_path = ['/home/wuxian/Aliyun/trimap/face-tri-10000-modified/']
+# dir_path = ['/home/wuxian/Aliyun/image'] + dir_path
+# dir_path = dir_path + ['/home/wuxian/Aliyun/result10000/UI/']
 
 add = ['{}.jpg', '{}.png', '{}.png']
 
