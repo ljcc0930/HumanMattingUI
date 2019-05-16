@@ -9,7 +9,7 @@ from PySide2.QtWidgets import (QApplication, QVBoxLayout, QWidget,
 from PySide2.QtCore import Slot, Qt, QSize
 from PySide2.QtGui import QPixmap, QImage, QCursor, QFont
 
-from widgets import MyPushButton, ClickLabel, MySlider
+from widgets import MyPushButton, ClickLabel, MySlider, MyButtonGroup, MyRadioButton
 from utils import numpytoPixmap, ImageInputs, addBlankToLayout
 from matting.solve_foreground_background import solve_foreground_background
 import tools
@@ -60,9 +60,11 @@ class MyWidget(QWidget):
         show = self.image * (1 - self.imageAlpha) + self.trimap * self.imageAlpha
         self.setImage(2, array = show)
 
-    def changeBG(self):
-        self.bgid += 1
+    def changeBG(self, bgid):
+        # self.bgid += 1
+        self.bgid = bgid
         self.background = config.getBackground(self.rawSize[::-1], self.bgid)
+        self.setFinal()
 
     def changeBackground(self, alpha):
         image, trimap = self.resizeToNormal()
@@ -97,11 +99,11 @@ class MyWidget(QWidget):
         imgw, imgh = self.scale
         self.f = min(imgw / w, imgh / h)
 
-        self.splitArrX = [self.image.shape[0]]
-        self.splitArrY = [self.image.shape[1]]
-        self.resultTool.setArr(self.splitArrX, self.splitArrY)
-        for i in range(config.defaultSplit):
-            self.splitUp()
+        # self.splitArrX = [self.image.shape[0]]
+        # self.splitArrY = [self.image.shape[1]]
+        # self.resultTool.setArr(self.splitArrX, self.splitArrY)
+        # for i in range(config.defaultSplit):
+        #     self.splitUp()
 
 
         self.rawSize = (w, h)
@@ -176,6 +178,14 @@ class MyWidget(QWidget):
         theta = self.filler.getTheta()
         self.setFiller(theta * (1.01 ** num))
 
+    def setPen(self, num):
+        self.pen.setThickness(num)
+        self.penSlider.setValue(num)
+
+    def penUp(self, num = 1):
+        thickness = self.pen.getThickness()
+        self.setPen(thickness + num)
+
     def unknownUp(self):
         if self.lastCommand != "FillUnknown":
             return
@@ -232,13 +242,12 @@ class MyWidget(QWidget):
             self.outputs.append(output)
         if True: #self.final is None:
             self.final = self.outputs[-1].copy()
-        self.setResult()
 
     def getToolObject(self, id):
         if id in [0, 1, 2]:
             return self.tool
-        if id > 2 and id < self.n or id == -1:
-            return self.resultTool.setId(id)
+        # if id > 2 and id < self.n or id == -1:
+        #     return self.resultTool.setId(id)
 
     def click(self, pos, id):
         tool = self.getToolObject(id)
@@ -269,10 +278,10 @@ class MyWidget(QWidget):
     def setTool(self, toolName):
         assert toolName in tools.painterTools, toolName + " not implement!!"
         self.tool = tools.painterTools[toolName]
-        if toolName == "Filler":
-            self.setColor("Background")
-        if toolName == "Pen":
-            self.setColor("Unknown")
+        # if toolName == "Filler":
+        #     self.setColor("Background")
+        # if toolName == "Pen":
+        #     self.setColor("Unknown")
         assert self.tool.toolName == toolName, toolName + " mapping wrong object"
 
     def initImageLayout(self):
@@ -284,11 +293,11 @@ class MyWidget(QWidget):
             text.setFixedSize(QSize(imgx, imgy))
             self.texts.append(text)
 
-        for i, f in enumerate(self.functions):
-            text = ClickLabel(self, i + 3, "")
-            text.setAlignment(Qt.AlignTop)
-            text.setFixedSize(QSize(imgx, imgy))
-            self.texts.append(text)
+        # for i, f in enumerate(self.functions):
+        #     text = ClickLabel(self, i + 3, "")
+        #     text.setAlignment(Qt.AlignTop)
+        #     text.setFixedSize(QSize(imgx, imgy))
+        #     self.texts.append(text)
 
         text = ClickLabel(self, -1, "")
         text.setAlignment(Qt.AlignTop)
@@ -314,6 +323,14 @@ class MyWidget(QWidget):
             self.imageAlphaSlider = obj
         elif command == 'FillerSlider':
             self.fillerSlider = obj
+        elif command == 'PenSlider':
+            self.penSlider = obj
+
+    def setButtonGroup(self, obj, command):
+        if command == 'Foreground&Background&Unknown':
+            self.trimapButtonGroup = obj
+        elif command == 'Checkerboard&Red&Green&Blue':
+            self.backgroundButtonGroup = obj
 
     def initToolLayout(self):
         bx, by = self.buttonScale
@@ -336,6 +353,7 @@ class MyWidget(QWidget):
                     elif command[-1] == '-':
                         command = command[:-1]
                         temp = MySlider(self, command, Qt.Horizontal)
+                        self.setSlider(temp, command)
                         temp.setTickPosition(QSlider.TicksBothSides)
                         lef, rig, typ = config.sliderConfig[command]
                         temp.setSliderType(lef, rig, type = typ)
@@ -343,6 +361,18 @@ class MyWidget(QWidget):
                         self.setSlider(temp, command)
 
                         tempTool.append(temp)
+                    elif command[-1] == '=':
+                        command = command[:-1]
+                        buttonGroup = MyButtonGroup(self, command)
+                        subCommands = command.split('&')
+                        id = 0
+                        for subCommand in subCommands:
+                            temp = MyRadioButton(self, subCommand)
+                            buttonGroup.addRadioButton(temp, id)
+                            tempTool.append(temp)
+                            id += 1
+                        self.setButtonGroup(buttonGroup, command)
+                        
                     else:
                         temp = MyPushButton(self, config.getText(command), command)
                         temp.setFixedSize(QSize(bx, (by - config.defaultBlank * (n - 1)) // n))
@@ -393,7 +423,7 @@ class MyWidget(QWidget):
         self.pen = tools.painterTools['Pen']
         self.tool = self.filler
         self.tool.setWidget(self)
-        self.resultTool = tools.Concater()
+        # self.resultTool = tools.Concater()
         self.gridFlag = False
 
         self.fillWidth = 5
@@ -411,7 +441,10 @@ class MyWidget(QWidget):
 
 
         self.setImageAlpha(self.imageAlpha)
-
+        self.setFiller(self.filler.getTheta())
+        self.setPen(5)
+        self.trimapButtonGroup.button(1).setChecked(True)
+        self.backgroundButtonGroup.button(0).setChecked(True)
 
         self.mainLayout = QHBoxLayout()
         self.mainLayout.addLayout(self.imageLayout)

@@ -53,8 +53,18 @@ class PainterTool(BaseTool):
 class Pen(PainterTool):
     toolName = 'Pen'
     thickness = 5
+
     def __init__(self):
         self.mousePosition = None
+        self.thickness = Pen.thickness
+
+    def setThickness(self, thickness):
+        if thickness < 1:
+            thickness = 1
+        self.thickness = thickness
+
+    def getThickness(self):
+        return self.thickness
 
     def afterClick(self, pos, *args):
         position = pos.x(), pos.y()
@@ -69,9 +79,6 @@ class Pen(PainterTool):
                  self.color, thickness = self.thickness)
         self.mousePosition = position
         self.flush()
-
-    def setThickness(self, thickness):
-        Pen.thickness = thickness
 
 
 class Filler(PainterTool):

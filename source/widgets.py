@@ -1,6 +1,6 @@
 import math
 
-from PySide2.QtWidgets import QLabel, QPushButton, QSlider
+from PySide2.QtWidgets import QLabel, QPushButton, QSlider, QRadioButton, QButtonGroup
 
 import config
 import tools
@@ -40,6 +40,8 @@ class MyPushButton(QPushButton):
             'FillerDown':       lambda : widget.fillerUp(-1),
             'FillerUpTen':      lambda : widget.fillerUp(10),
             'FillerDownTen':    lambda : widget.fillerUp(-10),
+            'PenUp':            widget.penUp,
+            'PenDown':          lambda : widget.penUp(-1),
             'ShowGrid':         widget.showGrid,
             'UndoAlpha':        widget.undoAlpha,
             'SolveForeground':  widget.solveForeground,
@@ -75,6 +77,7 @@ class MySlider(QSlider):
         self.widget = widget
         self.commands = {
             'FillerSlider':     lambda : self.widget.setFiller(self.value()),
+            'PenSlider':        lambda : self.widget.setPen(self.value()),
             'ImageAlphaSlider': lambda : self.widget.setImageAlpha(self.value()),
         }
         assert self.command in self.commands, "MySlider " + self.command + " not implement!"
@@ -85,7 +88,7 @@ class MySlider(QSlider):
         if type == "discrete":
             self.setMinimum(minimum)
             self.setMaximum(maximum)
-            self.setTickInterval((maximum - minimum) // 10)
+            self.setTickInterval((maximum - minimum) // 20)
             self.setSingleStep(1)
 
         f_ = 1e+5
@@ -111,3 +114,44 @@ class MySlider(QSlider):
             self.value = lambda : math.exp(super(MySlider, self).value() * eps)
             self.setValue = lambda num: \
                 super(MySlider, self).setValue(math.log(max(num, eps)) * f_)
+
+
+class MyRadioButton(QRadioButton):
+    def __init__(self, widget, command):
+        super(MyRadioButton, self).__init__(command)
+        self.command = command
+        self.widget = widget
+        self.commands = {
+            'Foreground',
+            'Background',
+            'Unknown',
+            'Checkerboard',
+            'Red',
+            'Green',
+            'Blue'
+        }
+        assert self.command in self.commands, "MyRadioButton " + self.command + " not implement!"
+
+    # def mouseReleaseEvent(self, QMouseEvent):
+    #     super(MyRadioButton, self).mouseReleaseEvent(QMouseEvent)
+    #     self.widget.setSet()
+    #     self.widget.setResult()
+    #     self.widget.setFinal()
+
+
+class MyButtonGroup(QButtonGroup):
+    def __init__(self, widget, command):
+        super(MyButtonGroup, self).__init__()
+        self.command = command
+        self.texts = self.command.split('&')
+        self.widget = widget
+        self.commands = {
+            'Foreground&Background&Unknown':    lambda : self.widget.setColor(self.texts[self.checkedId()]),
+            'Checkerboard&Red&Green&Blue':      lambda : self.widget.changeBG(self.checkedId())
+        }
+        assert self.command in self.commands, "MyButtonGroup " + self.command + " not implement!"
+        self.buttonGroup = self.commands[self.command]
+        self.buttonClicked.connect(self.buttonGroup)
+
+    def addRadioButton(self, radioButton, id):
+        self.addButton(radioButton, id)

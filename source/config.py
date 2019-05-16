@@ -7,10 +7,12 @@ painterColors = {'Foreground':  (255, 255, 255),
                  'Unknown':     (128, 128, 128)}
 buttonString = \
 '''ImageAlphaSlider-
-Foreground Background Unknown
-Filler FillerUp|FillerDown * FillerSlider- * * Pen Undo #Save
+Foreground&Background&Unknown=
+Filler FillerUp|FillerDown * FillerSlider-
+Pen PenUp|PenDown * PenSlider-
 #Squeeze SolveForeground FillUnknown UnknownUp|UnknownDown
-Run SaveAlpha ChangeBG
+Run Undo #Save SaveAlpha
+Checkerboard&Red&Green&Blue=
 Previous Next'''
 # SplitUp|SplitDown ShowGrid UndoAlpha
 buttonKeys = [[tool.split('|') for tool in block.split(' ')] for block in buttonString.split('\n')]
@@ -22,6 +24,8 @@ commandText = {
     'FillerDown': 'Filler-',
     'FillerUpTen': 'Filler+10',
     'FillerDownTen': 'Filler-10',
+    'PenUp': 'Pen+',
+    'PenDown': 'Pen-',
     'UnknownUp': 'Unknown+',
     'UnknownDown': 'Unknown-',
     'SplitUp': 'Split Up',
@@ -39,7 +43,8 @@ def getText(command):
 
 sliderConfig = {
 "ImageAlphaSlider":     (0, 1, "continuous"),
-"FillerSlider":         (1, 250, "log")
+"FillerSlider":         (1, 250, "log"),
+"PenSlider":     (1, 21, "discrete")
 }
 
 
@@ -50,7 +55,8 @@ colorKeys.sort()
 
 toolTexts = buttonKeys
 
-blankSize = [10, 40]
+# blankSize = [10, 40]
+blankSize = [10, 15]
 defaultBlank = 5
 
 for i in range(len(blankSize) - 1)[::-1]:
@@ -58,8 +64,8 @@ for i in range(len(blankSize) - 1)[::-1]:
 buttonScale = (100, 50)
 buttonCol = 3
 
-imgScale = (750, 475)
-# imgScale = (500, 400)
+# imgScale = (750, 475)
+imgScale = (600, 450)
 imgRow = 2
 
 defaultSplit = 3
@@ -69,9 +75,9 @@ gridBG[:10, :10] = 128
 gridBG[10:, 10:] = 128
 blueBG = np.array([[[255, 0, 0]]])
 greenBG = np.array([[[0, 255, 0]]])
-redBG= np.array([[[0, 0, 255]]])
+redBG = np.array([[[0, 0, 255]]])
 
-backgrounds = [gridBG, redBG, blueBG, greenBG]
+backgrounds = [gridBG, redBG, greenBG, blueBG]
 
 def getBackground(size, background = 2):
     background = background % len(backgrounds)
