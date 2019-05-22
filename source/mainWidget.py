@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 
 from PySide2.QtWidgets import (QApplication, QVBoxLayout, QWidget, 
-                               QHBoxLayout, QSlider)
+                               QHBoxLayout, QSlider, QFileDialog)
 from PySide2.QtCore import Slot, Qt, QSize
 from PySide2.QtGui import QPixmap, QImage, QCursor, QFont
 
@@ -82,6 +82,13 @@ class MyWidget(QWidget):
             alpha = output.mean(axis = 2) / 255.0
             show = self.changeBackground(alpha)
             self.setImage(i + 3, array = show, resize = True, grid = self.gridFlag)
+
+    def open(self):
+        list_file, file_type = QFileDialog.getOpenFileName(self, "open file list", '.', 'Txt files(*.txt)')
+        self.imageList = ImageInputs(list_file)
+
+        self.newSet()
+        self.setImageAlpha(self.imageAlpha)
 
     def newSet(self, prev = False):
         for text in self.texts:
@@ -304,7 +311,7 @@ class MyWidget(QWidget):
         text.setFixedSize(QSize(imgx, imgy))
         self.texts.append(text)
 
-        self.newSet()
+        # self.newSet()
 
         texts = self.texts[:3] + self.texts[-1:]
 
@@ -404,14 +411,14 @@ class MyWidget(QWidget):
 
             addBlankToLayout(self.toolLayout, blankSize[1])
 
-    def __init__(self, imageList, functions):
+    def __init__(self, functions):
         QWidget.__init__(self)
 
         self.functions = functions
         self.lastCommand = None
         self.history = []
 
-        self.imageList = imageList
+        # self.imageList = imageList
         self.scale = config.imgScale
         self.n = 4 + len(functions)
 
@@ -440,7 +447,7 @@ class MyWidget(QWidget):
         self.initToolLayout()
 
 
-        self.setImageAlpha(self.imageAlpha)
+        # self.setImageAlpha(self.imageAlpha)
         self.setFiller(self.filler.getTheta())
         self.setPen(5)
         self.trimapButtonGroup.button(1).setChecked(True)
@@ -453,11 +460,11 @@ class MyWidget(QWidget):
         self.setLayout(self.mainLayout)
 
 
-def initialWidget(inputList, *args):
-    inp = ImageInputs(inputList)
+def initialWidget(*args):
+    # inp = ImageInputs(inputList)
     app = QApplication(sys.argv)
 
-    widget = MyWidget(imageList = inp, functions = args)
+    widget = MyWidget(functions = args)
     # widget.resize(800, 600)
     widget.show()
 

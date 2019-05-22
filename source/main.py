@@ -23,7 +23,7 @@ def main():
         a = lambda x, y: y
         b = lambda x, y: x
         c = lambda x, y : closed_form_matting_with_trimap(x / 255.0, y[:, :, 0] / 255.0) * 255.0
-        loadList = '../final_list.txt'
+        # loadList = '../final_list.txt'
         methods = [c]
         # print("load model success!!!")
     except:
@@ -31,9 +31,9 @@ def main():
         a = lambda x, y: y
         b = lambda x, y: x
         c = lambda x, y: x / 2 + y / 2
-        loadList = '../list.txt'
+        # loadList = '../list.txt'
         methods = [a, b, c]
-    initialWidget(loadList, *methods)
+    initialWidget(*methods)
 
 if __name__ == "__main__":
     main()

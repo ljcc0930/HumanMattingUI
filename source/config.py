@@ -13,7 +13,7 @@ Pen PenUp|PenDown * PenSlider-
 #Squeeze SolveForeground FillUnknown UnknownUp|UnknownDown
 Run Undo #Save SaveAlpha
 Checkerboard&Red&Green&Blue=
-Previous Next'''
+Open Previous Next'''
 # SplitUp|SplitDown ShowGrid UndoAlpha
 buttonKeys = [[tool.split('|') for tool in block.split(' ')] for block in buttonString.split('\n')]
 commandText = {

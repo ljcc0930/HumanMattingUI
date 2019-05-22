@@ -28,6 +28,7 @@ class MyPushButton(QPushButton):
             'Run':              widget.run,
             'Save':             widget.save,
             'SaveAlpha':        widget.saveAlpha,
+            'Open':             widget.open,
             'Previous':         lambda : widget.newSet(True),
             'Next':             widget.newSet,
             'FillUnknown':      widget.fillUnknown,
