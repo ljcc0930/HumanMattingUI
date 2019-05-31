@@ -117,7 +117,7 @@ class MyWidget(QWidget):
         self.rawImage = self.image
         self.background = config.getBackground((h, w), self.bgid)
         self.image = cv2.resize(self.image, None, fx = self.f, fy = self.f)
-        self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f)
+        self.trimap = cv2.resize(self.trimap, None, fx = self.f, fy = self.f, interpolation=cv2.INTER_NEAREST)
 
         self.history = []
         self.alphaHistory = []
