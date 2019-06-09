@@ -4,3 +4,4 @@
 *.bmp
 __pycache__
 *.py.swp
+*.exe
