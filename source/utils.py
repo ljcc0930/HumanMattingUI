@@ -22,13 +22,21 @@ def addBlankToLayout(layout, blankSize):
         blank.setFixedSize(QSize(blankSize, 1))
     layout.addWidget(blank)
 
+
 class ImageInputs:
     def __init__(self, path):
         fin = open(path, 'r')
         self.list = []
         for line in fin:
             s = line[:-1].split(' ')
-            self.list.append(s)
+            path_list = []
+            img_paths = s[0:1]
+            tri_paths = s[1:-2]
+            res_paths = s[-2:]
+            path_list.append(img_paths)
+            path_list.append(tri_paths)
+            path_list.append(res_paths)
+            self.list.append(path_list)
 
         self.len = len(self.list)
         self.cnt = -1
@@ -37,39 +45,49 @@ class ImageInputs:
         self.cnt += 1
         if self.cnt >= self.len:
             return None
-        imgPath, triPath, alphaPath = self.list[self.cnt][:3]
-        self.nowImg = cv2.imread(imgPath)
-        self.nowTri = cv2.imread(triPath)
+        imgPaths, triPaths, resPaths = self.list[self.cnt][:3]
+        self.nowImg = cv2.imread(imgPaths[0])
+        self.candidateTris = []
+        if os.path.exists(resPaths[1]):
+            self.candidateTris.append(cv2.imread(resPaths[1]))
+        else:
+            for triPath in triPaths:
+                self.candidateTris.append(cv2.imread(triPath))
         self.nowAlpha = None
-        if os.path.exists(alphaPath):
-            self.nowAlpha = cv2.imread(alphaPath)
+        if os.path.exists(resPaths[0]):
+            self.nowAlpha = cv2.imread(resPaths[0])
 
-        return self.nowImg, self.nowTri, self.nowAlpha
+        return self.nowImg, self.candidateTris, self.nowAlpha
 
     def previous(self):
         if self.cnt > 0:
             self.cnt -= 1
-            imgPath, triPath, alphaPath = self.list[self.cnt][:3]
-            self.nowImg = cv2.imread(imgPath)
-            self.nowTri = cv2.imread(triPath)
+            imgPaths, triPaths, resPaths = self.list[self.cnt][:3]
+            self.nowImg = cv2.imread(imgPaths[0])
+            self.candidateTris = []
+            if os.path.exists(resPaths[1]):
+                self.candidateTris.append(cv2.imread(resPaths[1]))
+            else:
+                for triPath in triPaths:
+                    self.candidateTris.append(cv2.imread(triPath))
             self.nowAlpha = None
-            if os.path.exists(alphaPath):
-                self.nowAlpha = cv2.imread(alphaPath)
+            if os.path.exists(resPaths[0]):
+                self.nowAlpha = cv2.imread(resPaths[0])
             if self.nowAlpha is None:
                 self.nowAlpha = np.zeros(self.nowImg.shape)
 
-        return self.nowImg, self.nowTri, self.nowAlpha
+        return self.nowImg, self.candidateTris, self.nowAlpha
     
     def save(self, trimap):
-        imgPath, triPath = self.list[self.cnt][:2]
+        triPath = self.list[self.cnt][2][1]
         cv2.imwrite(triPath, trimap.astype('uint8'))
 
     def saveAlpha(self, alpha):
-        alphaPath = self.list[self.cnt][2]
+        alphaPath = self.list[self.cnt][2][0]
         cv2.imwrite(alphaPath, alpha)
 
     def saveBoth(self, alpha, foreground):
-        alphaPath = self.list[self.cnt][2]
+        alphaPath = self.list[self.cnt][2][0]
         b_channel, g_channel, r_channel = cv2.split(foreground)
         a_channel = alpha.mean(axis = 2)
         img_bgra = cv2.merge((b_channel, g_channel, r_channel, a_channel))

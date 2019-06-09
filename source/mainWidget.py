@@ -14,8 +14,8 @@ from utils import numpytoPixmap, ImageInputs, addBlankToLayout
 from matting.solve_foreground_background import solve_foreground_background
 import tools
 import config
-
 import algorithm
+from selectDialog import SelectDialog
 
 class MyWidget(QWidget):
     def setImage(self, x, pixmap = None, array = None, resize = False, grid = False):
@@ -83,6 +83,13 @@ class MyWidget(QWidget):
             show = self.changeBackground(alpha)
             self.setImage(i + 3, array = show, resize = True, grid = self.gridFlag)
 
+    def openSelectDialog(self, image, trimaps):
+        self.selectDialog = SelectDialog(image, trimaps)
+        if self.selectDialog.exec_():
+            return trimaps[self.selectDialog.selectId]
+        else:
+            return trimaps[0]
+
     def open(self):
         list_file, file_type = QFileDialog.getOpenFileName(self, "open file list", '.', 'Txt files(*.txt)')
         self.imageList = ImageInputs(list_file)
@@ -94,9 +101,17 @@ class MyWidget(QWidget):
         for text in self.texts:
             text.setPixmap(None)
         if prev:
-            self.image, self.trimap, self.final = self.imageList.previous()
+            self.image, self.trimaps, self.final = self.imageList.previous()
+            if len(self.trimaps) == 1:
+                self.trimap = self.trimaps[0]
+            else:
+                self.trimap = self.openSelectDialog(self.image, self.trimaps)
         else:
-            self.image, self.trimap, self.final = self.imageList()
+            self.image, self.trimaps, self.final = self.imageList()
+            if len(self.trimaps) == 1:
+                self.trimap = self.trimaps[0]
+            else:
+                self.trimap = self.openSelectDialog(self.image, self.trimaps)
 
         if len(self.trimap.shape) == 2:
             self.trimap = np.stack([self.trimap] * 3, axis = 2)
