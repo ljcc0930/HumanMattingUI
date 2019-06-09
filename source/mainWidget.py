@@ -151,7 +151,7 @@ class MyWidget(QWidget):
         f = 1 / self.f
         # image = cv2.resize(self.image, self.rawSize)
         image = self.rawImage
-        trimap = cv2.resize(self.trimap, self.rawSize)
+        trimap = cv2.resize(self.trimap, self.rawSize, interpolation=cv2.INTER_NEAREST)
         return image, trimap
 
     def splitUp(self):

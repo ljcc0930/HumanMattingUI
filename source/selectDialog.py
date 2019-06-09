@@ -12,17 +12,22 @@ class SelectDialog(QDialog):
 	def __init__(self, image, trimaps):
 		super(SelectDialog, self).__init__()
 
-		self.image = image
-		self.candidateTrimaps = trimaps
-		self.resize(1200, 800)
+		self.image = image.copy()
+		self.candidateTrimaps = []
+		for trimap in trimaps:
+			self.candidateTrimaps.append(trimap)
 		labelW = 400
 		h, w = self.image.shape[:2]
 		if w > labelW:
 			ratio = float(labelW) / float(w)
 		else:
+			labelW = w
 			ratio = 1
 		labelH = int(h * ratio)
 		self.image = cv2.resize(self.image, (labelW, labelH))
+		for i in range(len(self.candidateTrimaps)):
+			self.candidateTrimaps[i] = cv2.resize(self.candidateTrimaps[i], (labelW, labelH), interpolation=cv2.INTER_NEAREST)
+		self.resize(labelW * 3 + 150, 800)
 
 		widget = QWidget()
 		Vlayout = QVBoxLayout()
@@ -49,6 +54,7 @@ class SelectDialog(QDialog):
 			Vlayout.addLayout(Hlayout)
 			id += 1
 		self.button = QPushButton('OK')
+		self.button.setFixedSize(QSize(100, 50))
 		self.button.clicked.connect(self.select)
 		Vlayout.addWidget(self.button)
 		widget.setLayout(Vlayout)
