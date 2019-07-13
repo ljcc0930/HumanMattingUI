@@ -1,6 +1,8 @@
 # HumanMattingUI
 Some UI for labelling human matting problem.
 
+[A new stable version by Visual China Group](https://github.com/generalmilk/HumanMattingUI)
+
 ## Prerequisites
 - Linux or Windows
 - Python 3
